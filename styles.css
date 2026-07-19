@@ -14,6 +14,26 @@
 
 section[data-testid="stSidebar"] {
     min-width: 350px;
+    background:
+        radial-gradient(circle at 20% 0%, rgba(0, 217, 255, 0.15), transparent 30%),
+        linear-gradient(180deg, #071827 0%, #04101d 58%, #020914 100%) !important;
+    border-right: 1px solid rgba(0, 217, 255, 0.24);
+    box-shadow: 12px 0 36px rgba(0, 0, 0, 0.28);
+}
+
+section[data-testid="stSidebar"] > div {
+    background: transparent !important;
+}
+
+section[data-testid="stSidebar"] * {
+    color-scheme: dark;
+}
+
+section[data-testid="stSidebar"] [data-baseweb="select"] > div,
+section[data-testid="stSidebar"] [data-baseweb="input"] > div,
+section[data-testid="stSidebar"] [data-baseweb="base-input"] {
+    background-color: rgba(5, 20, 34, 0.92) !important;
+    border-color: rgba(0, 217, 255, 0.22) !important;
 }
 
 .hero {
@@ -354,10 +374,12 @@ div[data-testid="stCheckbox"] label {
     border: 1px solid rgba(0, 217, 255, 0.22);
     box-shadow: 0 0 24px rgba(0, 217, 255, 0.10);
     margin-bottom: 20px;
+    overflow-x: auto;
 }
 
 .compare-table {
     width: 100%;
+    min-width: 760px;
     border-collapse: collapse;
     overflow: hidden;
     border-radius: 14px;
@@ -385,6 +407,12 @@ div[data-testid="stCheckbox"] label {
 .good-cell {
     color: #00d084 !important;
     font-weight: 800;
+}
+
+.current-cell {
+    color: #00d9ff !important;
+    font-weight: 800;
+    text-shadow: 0 0 12px rgba(0, 217, 255, 0.35);
 }
 
 .report-box {

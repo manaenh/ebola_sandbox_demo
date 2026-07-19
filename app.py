@@ -515,7 +515,34 @@ for name, frame in frames.items():
         "潜在未追踪密接": range_text(final, "missed_contacts"),
         "医疗压力": range_text(final, "hospital_pressure"),
     })
-st.dataframe(pd.DataFrame(comparison_rows), width="stretch", hide_index=True)
+comparison_html_rows = ""
+for comparison in comparison_rows:
+    if comparison["策略"].startswith("基线"):
+        value_class = "bad-cell"
+    elif comparison["策略"] == "强化协同":
+        value_class = "good-cell"
+    else:
+        value_class = "current-cell"
+    comparison_html_rows += (
+        "<tr>"
+        f"<td class='{value_class}'>{comparison['策略']}</td>"
+        f"<td>{comparison['传播状态 / Rt']}</td>"
+        f"<td>{comparison['推演病例']}</td>"
+        f"<td>{comparison['潜在未追踪密接']}</td>"
+        f"<td>{comparison['医疗压力']}</td>"
+        "</tr>"
+    )
+st.markdown(
+    f"""<div class="compare-box main-compare">
+    <table class="compare-table">
+        <thead><tr>
+            <th>策略</th><th>传播状态 / Rt</th><th>推演病例</th>
+            <th>潜在未追踪密接</th><th>医疗压力</th>
+        </tr></thead>
+        <tbody>{comparison_html_rows}</tbody>
+    </table></div>""",
+    unsafe_allow_html=True,
+)
 
 tab_rt, tab_compare, tab_timeline, tab_report, tab_model, tab_future = st.tabs(
     ["Rt趋势", "策略对比", "推演时间线", "复盘报告", "模型说明", "未来升级路径"]
