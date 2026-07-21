@@ -38,6 +38,23 @@ LOCATIONS = {
     "隔离点": (22.5860, 113.9500, "密接隔离管理"),
     "物流站点/学校企业": (22.6140, 114.1300, "聚集性风险"),
 }
+
+# The basemap intentionally contains no labels. These Chinese labels are
+# rendered as deck.gl layers so every viewer sees the same language.
+CHINESE_MAP_LABELS = [
+    {"label": "深圳", "lat": 22.475, "lon": 114.015, "size": 30, "color": [84, 230, 255, 225]},
+    {"label": "宝安区", "lat": 22.700, "lon": 113.880, "size": 18, "color": [205, 229, 239, 190]},
+    {"label": "南山区", "lat": 22.535, "lon": 113.925, "size": 18, "color": [205, 229, 239, 190]},
+    {"label": "福田区", "lat": 22.525, "lon": 114.055, "size": 18, "color": [205, 229, 239, 190]},
+    {"label": "罗湖区", "lat": 22.555, "lon": 114.145, "size": 18, "color": [205, 229, 239, 190]},
+    {"label": "龙华区", "lat": 22.705, "lon": 114.035, "size": 18, "color": [205, 229, 239, 190]},
+    {"label": "龙岗区", "lat": 22.720, "lon": 114.225, "size": 18, "color": [205, 229, 239, 190]},
+]
+
+CHINESE_DARK_MAP_STYLE = (
+    "https://basemaps.cartocdn.com/gl/"
+    "dark-matter-nolabels-gl-style/style.json"
+)
 EVENTS = {
     1: ("口岸输入", "境外暴露人员抵达深圳，出现低热与肌肉酸痛。"),
     2: ("识别窗口", "接触史问询与闭环转运决定风险能否被挡在口岸。"),
@@ -186,6 +203,17 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
             "halo": color + [38],
         })
     point_df = pd.DataFrame(points)
+    admin_label_df = pd.DataFrame(CHINESE_MAP_LABELS)
+    node_label_df = point_df[["name", "lat", "lon"]].copy()
+    node_label_df["label"] = node_label_df["name"]
+    node_label_df["size"] = 14
+    node_label_df["color"] = node_label_df.apply(
+        lambda item: [255, 235, 205, 235]
+        if item["name"] in {"深圳宝安国际机场", "基层诊所"}
+        else [190, 246, 255, 230],
+        axis=1,
+    )
+    node_label_df["pixel_offset"] = node_label_df.apply(lambda _: [0, -30], axis=1)
 
     spread_routes = [
         ("深圳宝安国际机场", "入境酒店/交通节点", 2),
@@ -225,6 +253,33 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
                   get_fill_color="color", get_line_color=[235, 255, 255, 230], stroked=True, pickable=True),
         pdk.Layer("ArcLayer", pd.DataFrame(arcs), get_source_position="source", get_target_position="target",
                   get_source_color="source_color", get_target_color="target_color", get_width="width", pickable=False),
+        pdk.Layer(
+            "TextLayer",
+            admin_label_df,
+            get_position="[lon, lat]",
+            get_text="label",
+            get_size="size",
+            get_color="color",
+            get_text_anchor="'middle'",
+            get_alignment_baseline="'center'",
+            font_family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif",
+            billboard=True,
+            pickable=False,
+        ),
+        pdk.Layer(
+            "TextLayer",
+            node_label_df,
+            get_position="[lon, lat]",
+            get_text="label",
+            get_size="size",
+            get_color="color",
+            get_pixel_offset="pixel_offset",
+            get_text_anchor="'middle'",
+            get_alignment_baseline="'bottom'",
+            font_family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif",
+            billboard=True,
+            pickable=False,
+        ),
     ]
     # A visible containment ring appears only when tracing + isolation form a closure.
     if actions["cdc_tracing"] and actions["community_isolation"] and day >= 8:
@@ -239,7 +294,7 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
     return pdk.Deck(
         layers=layers,
         initial_view_state=pdk.ViewState(latitude=22.58, longitude=113.98, zoom=9.3, pitch=53, bearing=-13),
-        map_style="dark",
+        map_style=CHINESE_DARK_MAP_STYLE,
         tooltip={"html": "<b>{name}</b><br/>风险指数：{risk}<br/>{desc}",
                  "style": {"backgroundColor": "#061523", "color": "white"}},
     )
