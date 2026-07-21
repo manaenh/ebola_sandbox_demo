@@ -51,6 +51,15 @@ CHINESE_MAP_LABELS = [
     {"label": "龙岗区", "lat": 22.720, "lon": 114.225, "size": 18, "color": [205, 229, 239, 190]},
 ]
 
+# deck.gl's TextLayer defaults to a Latin-only font atlas. Without an explicit
+# character set, Chinese labels are silently skipped in the browser.
+CHINESE_MAP_CHARACTER_SET = "".join(
+    sorted(set(
+        "".join(item["label"] for item in CHINESE_MAP_LABELS)
+        + "".join(LOCATIONS.keys())
+    ))
+)
+
 CHINESE_DARK_MAP_STYLE = (
     "https://basemaps.cartocdn.com/gl/"
     "dark-matter-nolabels-gl-style/style.json"
@@ -262,7 +271,8 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
             get_color="color",
             get_text_anchor="'middle'",
             get_alignment_baseline="'center'",
-            font_family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif",
+            font_family=repr("Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif"),
+            character_set=repr(CHINESE_MAP_CHARACTER_SET),
             billboard=True,
             pickable=False,
         ),
@@ -276,7 +286,8 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
             get_pixel_offset="pixel_offset",
             get_text_anchor="'middle'",
             get_alignment_baseline="'bottom'",
-            font_family="Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif",
+            font_family=repr("Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif"),
+            character_set=repr(CHINESE_MAP_CHARACTER_SET),
             billboard=True,
             pickable=False,
         ),
