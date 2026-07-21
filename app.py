@@ -445,7 +445,24 @@ with st.sidebar:
                 disabled=not editable,
             )
 
+    st.markdown("#### 动态推演")
+    speed_label = st.select_slider(
+        "播放速度",
+        options=["慢速", "演示", "快速"],
+        value="演示",
+    )
+    playback = st.button("▶ 从 Day 1 播放至 Day 14", width="stretch", type="primary")
+    if playback:
+        st.session_state.simulation_day = DAYS
+    day = st.slider("推演进度", 1, DAYS, format="Day %d", key="simulation_day")
+    day = int(np.clip(day, 1, DAYS))
+    st.info(
+        f"结果基于左侧开关。策略改变时运行{UNCERTAINTY_RUNS}次轻量模拟；"
+        "日期变化直接读取缓存，不会重新运行模型。"
+    )
     st.caption("地图为演示坐标，可替换为真实点位。")
+
+frame_delay = {"慢速": 0.24, "演示": 0.13, "快速": 0.06}[speed_label]
 
 actions = {key: bool(st.session_state[f"ctrl_{key}"]) for key in ALL_KEYS}
 current = cached_ensemble(tuple(sorted(actions.items())), DAYS, entry_mode)
@@ -460,6 +477,12 @@ strong = cached_ensemble(
     entry_mode,
 )
 frames = {"基线：漏检/低干预": baseline, "当前策略": current, "强化协同": strong}
+row = interpolate(current, day)
+status, status_class = status_for(row["Rt_median"])
+event_title, event_text = EVENTS[day]
+current_calendar_date = sim_date + timedelta(days=day - 1)
+current_date_label = f"{current_calendar_date.month}月{current_calendar_date.day}日"
+controls, risks = strategy_explanation(actions)
 strategy_label = (
     f"自定义（基于{st.session_state.template}）"
     if strategy_mode == "自定义"
