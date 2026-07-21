@@ -377,6 +377,8 @@ if "strategy_mode" not in st.session_state:
     st.session_state.strategy_mode = "标准干预"
 if "simulation_day" not in st.session_state:
     st.session_state.simulation_day = DAYS
+if "pending_simulation_day" not in st.session_state:
+    st.session_state.pending_simulation_day = st.session_state.simulation_day
 for key in ALL_KEYS:
     st.session_state.setdefault(f"ctrl_{key}", SCENARIOS["标准干预"]["interventions"][key])
 
@@ -447,15 +449,37 @@ with st.sidebar:
         options=["慢速", "演示", "快速"],
         value="演示",
     )
-    playback = st.button("▶ 从 Day 1 播放至 Day 14", width="stretch", type="primary")
+    playback = st.button("▶ 连续播放 Day 1–14（推荐看动态）", width="stretch", type="primary")
     if playback:
-        # This is set before the slider is instantiated, keeping metrics and
-        # the final animation frame synchronized at Day 14.
         st.session_state.simulation_day = DAYS
-    day = st.slider("推演进度", 1, DAYS, format="Day %d", key="simulation_day")
+        st.session_state.pending_simulation_day = DAYS
+
+    nav_left, nav_right = st.columns(2)
+    if nav_left.button("← 前一天", width="stretch", disabled=st.session_state.simulation_day <= 1):
+        st.session_state.simulation_day -= 1
+        st.session_state.pending_simulation_day = st.session_state.simulation_day
+    if nav_right.button("后一天 →", width="stretch", disabled=st.session_state.simulation_day >= DAYS):
+        st.session_state.simulation_day += 1
+        st.session_state.pending_simulation_day = st.session_state.simulation_day
+
+    # Widgets inside a form do not rerun the app while being dragged. Only the
+    # submit button applies the selected day and refreshes the visualization.
+    with st.form("simulation_day_form", border=False):
+        st.slider(
+            "跳转到指定日期",
+            1,
+            DAYS,
+            format="Day %d",
+            key="pending_simulation_day",
+        )
+        apply_day = st.form_submit_button("更新地图到所选日期", width="stretch")
+    if apply_day:
+        st.session_state.simulation_day = st.session_state.pending_simulation_day
+
+    day = int(st.session_state.simulation_day)
     st.info(
         f"结果基于左侧开关。策略改变时运行{UNCERTAINTY_RUNS}次轻量模拟；"
-        "拖动日期直接读取缓存，不会重新计算。"
+        "日期滑块拖动时不会刷新，点击“更新地图”后只刷新一次。"
     )
     st.caption("地图为演示坐标，可替换为真实点位。")
 
