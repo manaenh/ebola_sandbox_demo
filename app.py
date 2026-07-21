@@ -60,6 +60,21 @@ CHINESE_MAP_CHARACTER_SET = "".join(
     ))
 )
 
+# Pixel offsets keep labels readable beside the 3D columns. The airport and
+# emergency-center labels receive separate vertical positions because their
+# coordinates are intentionally close in the demo.
+NODE_LABEL_LAYOUT = {
+    "深圳宝安国际机场": {"pixel_offset": [-58, -28], "text_anchor": "end"},
+    "海关/机场急救中心": {"pixel_offset": [-58, 8], "text_anchor": "end"},
+    "入境酒店/交通节点": {"pixel_offset": [-52, -4], "text_anchor": "end"},
+    "城中村社区": {"pixel_offset": [-52, -22], "text_anchor": "end"},
+    "基层诊所": {"pixel_offset": [52, -20], "text_anchor": "start"},
+    "定点医院": {"pixel_offset": [52, 12], "text_anchor": "start"},
+    "疾控中心": {"pixel_offset": [-52, -4], "text_anchor": "end"},
+    "隔离点": {"pixel_offset": [-52, -4], "text_anchor": "end"},
+    "物流站点/学校企业": {"pixel_offset": [52, -4], "text_anchor": "start"},
+}
+
 CHINESE_DARK_MAP_STYLE = (
     "https://basemaps.cartocdn.com/gl/"
     "dark-matter-nolabels-gl-style/style.json"
@@ -222,7 +237,12 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
         else [190, 246, 255, 230],
         axis=1,
     )
-    node_label_df["pixel_offset"] = node_label_df.apply(lambda _: [0, -30], axis=1)
+    node_label_df["pixel_offset"] = node_label_df["name"].map(
+        lambda name: NODE_LABEL_LAYOUT[name]["pixel_offset"]
+    )
+    node_label_df["text_anchor"] = node_label_df["name"].map(
+        lambda name: NODE_LABEL_LAYOUT[name]["text_anchor"]
+    )
 
     spread_routes = [
         ("深圳宝安国际机场", "入境酒店/交通节点", 2),
@@ -284,8 +304,8 @@ def make_map(ensemble: pd.DataFrame, actions: Dict[str, bool], day: float, entry
             get_size="size",
             get_color="color",
             get_pixel_offset="pixel_offset",
-            get_text_anchor="'middle'",
-            get_alignment_baseline="'bottom'",
+            get_text_anchor="text_anchor",
+            get_alignment_baseline="'center'",
             font_family=repr("Microsoft YaHei, PingFang SC, Noto Sans CJK SC, sans-serif"),
             character_set=repr(CHINESE_MAP_CHARACTER_SET),
             billboard=True,
