@@ -1,0 +1,47 @@
+import type { DecisionOption, HotspotId } from './types'
+
+export const SOURCE_DOCUMENT = '埃博拉病毒病输入性疫情桌面推演脚本（用于创建demon）(发企业）.docx'
+
+export const m11Options: DecisionOption[] = [
+  {
+    id: 'rapid-epidemiology',
+    code: 'A',
+    title: '立即升级流行病学问诊',
+    description:
+      '由分诊护士补问具体国家、日期与体液接触史；同步佩戴口罩、限制陪同流动，并开启隔离通道。',
+    owner: '急诊分诊 · 院感联动',
+    feedback: '11:05 隔离，公共候诊区停留 23 分钟。',
+  },
+  {
+    id: 'staged-assessment',
+    code: 'B',
+    title: '先完成急诊基础评估',
+    description:
+      '先在分诊区完成生命体征和基础检查，同时补充旅行史并协调可用隔离空间。',
+    owner: '急诊分诊 · 临床评估',
+    feedback: '12:00 隔离；候诊期间发生一次呕吐，新增需评估人员 21 人。',
+  },
+]
+
+export const hotspotCopy: Record<HotspotId, { eyebrow: string; title: string; body: string }> = {
+  'zhou-qihang': {
+    eyebrow: 'PERSON / BH-EVD-001',
+    title: '周启航 · 38 岁',
+    body: '高热、乏力、腹泻。首次仅说明“非洲出差”，焦虑且担心家属受到歧视。',
+  },
+  triage: {
+    eyebrow: 'CONTROL POINT / TRIAGE',
+    title: '分诊信息缺口',
+    body: '当前旅行史粒度不足。需要继续确认具体国家、时间以及是否存在体液接触。',
+  },
+  'waiting-area': {
+    eyebrow: 'ZONE / PUBLIC WAITING',
+    title: '公共候诊区 · 18 人',
+    body: '18 是事件发生时场内人数，不代表接触者或密切接触者；需要依据有效暴露逐人评估。',
+  },
+  'isolation-route': {
+    eyebrow: 'ROUTE / ISOLATION',
+    title: '预设隔离通道',
+    body: '限制非必要移动，控制人员进出，并为后续报告、采样和专车转运保留清晰动线。',
+  },
+}
