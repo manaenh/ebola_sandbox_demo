@@ -15,7 +15,7 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
     <aside className="decision-panel" aria-labelledby="decision-title">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">EVENT INJECTION / 01</span>
+          <span className="eyebrow"><b>当前事件</b><small>EVENT 01</small></span>
           <h2 id="decision-title">急诊分诊卡</h2>
         </div>
         <span className="node-chip">M1-1</span>
@@ -34,7 +34,7 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
             <div><i />公共候诊区存在潜在暴露面</div>
           </div>
           <div className="decision-prompt">
-            <span>RESPONSE DECISION</span>
+            <span>响应决策 <small>RESPONSE DECISION</small></span>
             <strong>选择下一步工作路径</strong>
             <p>两个方案均具有操作合理性，后果将在提交后揭示。</p>
           </div>
@@ -53,7 +53,7 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
         </>
       ) : (
         <div className={rapid ? 'outcome-card controlled' : 'outcome-card exposed'} aria-live="polite">
-          <span className="outcome-label">BRANCH {selected?.code} / 已执行</span>
+          <span className="outcome-label">已执行 · 方案 {selected?.code}</span>
           <h3>{selected?.title}</h3>
           <p>{selected?.feedback}</p>
           <div className="outcome-grid">
@@ -73,8 +73,8 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
 
       <div className="assistant-summary">
         <div className="assistant-title">
-          <span className="assistant-glyph">AI</span>
-          <div><strong>态势助手</strong><small>DETERMINISTIC SUMMARY</small></div>
+          <span className="assistant-glyph">态势</span>
+          <div><strong>态势助手</strong><small>本地规则摘要</small></div>
         </div>
         <p>
           {state.phase === 'deciding'

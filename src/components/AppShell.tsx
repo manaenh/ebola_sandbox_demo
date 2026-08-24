@@ -45,8 +45,8 @@ export function AppShell({
             <span />
           </div>
           <div>
-            <div className="brand-title">EVD RESPONSE</div>
-            <div className="brand-subtitle">输入性疫情应急响应数字孪生</div>
+            <div className="brand-title">埃博拉疫情应急推演</div>
+            <div className="brand-subtitle">EVD RESPONSE DIGITAL TWIN</div>
           </div>
         </div>
 
@@ -67,7 +67,7 @@ export function AppShell({
         <div className="topbar-status">
           <div className="sim-badge">
             <span className="pulse-dot" />
-            虚构桌面推演
+            情景推演 · 模拟场景
           </div>
           <div className="clock-block">
             <small>SIMULATION TIME</small>
@@ -79,12 +79,6 @@ export function AppShell({
           </button>
         </div>
       </header>
-
-      <div className="system-ribbon">
-        <span>演练编号 SZ-EVD-TTX-2026</span>
-        <span>场景数据离线锁定</span>
-        <span className="system-online"><i />LOCAL SYSTEM NOMINAL</span>
-      </div>
 
       <main>{children}</main>
     </div>

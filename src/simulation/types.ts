@@ -23,7 +23,12 @@ export type MetricKey =
   | 'exposureDuration'
 
 export type ScenePhase = 'observing' | 'isolated' | 'exposure-event'
-export type HotspotId = 'zhou-qihang' | 'triage' | 'waiting-area' | 'isolation-route'
+export type HotspotId =
+  | 'zhou-qihang'
+  | 'triage-nurse'
+  | 'triage-desk'
+  | 'waiting-area'
+  | 'isolation-route'
 export type DecisionId = 'rapid-epidemiology' | 'staged-assessment'
 
 export type DecisionOption = {
