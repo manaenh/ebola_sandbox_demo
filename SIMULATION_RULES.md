@@ -117,35 +117,50 @@ type Provenance = {
 
 type MetricValue = {
   value: number | null
-  unit: 'people' | 'cases' | 'minutes' | 'hours' | 'percent' | 'ratio'
+  displayValue?: string
+  unit: 'people' | 'cases' | 'minutes' | 'percent' | 'beds' | 'status'
   provenance: Provenance
 }
 
-type DecisionEffect = {
-  advanceTo: string
-  metrics: Partial<Record<MetricKey, MetricValue>>
-  sceneCues: SceneCue[]
-  reveal: string[]
-  appendEvents: EventLogEntry[]
+type SimulationEventDefinition = {
+  id: EventId
+  title: string
+  date: string
+  time: string
+  characters: string[]
+  organizations: string[]
+  decisions: DecisionOption[]
+  visibleMetrics: MetricKey[]
+  nextEvent: EventId | null
 }
 
 type SimulationState = {
-  runId: string
-  currentNodeId: string
+  runId: number
+  currentEventId: EventId
   simulationTime: string
-  status: 'observing' | 'deciding' | 'resolved'
+  phase: 'deciding' | 'resolved' | 'module-complete'
   metrics: Record<MetricKey, MetricValue>
-  characters: Record<string, CharacterState>
-  decisions: DecisionRecord[]
-  revealedNodeIds: string[]
-  sceneCues: SceneCue[]
+  scene: SceneState
+  persistent: PersistentState
+  decisions: Partial<Record<EventId, DecisionId>>
+  completedEventIds: EventId[]
   eventLog: EventLogEntry[]
 }
 ```
 
 定义文件不可被运行时修改；reducer 是唯一状态写入口。反事实比较在独立 state replay 上运行，不污染当前 run。
 
-## 7. M1-1 状态转换
+## 7. Module 1 事件驱动状态转换
+
+### 7.1 事件定义契约
+
+`simulationEvents` 是不可变事件目录。每个事件定义内部 ID、用户标题、注入时间、描述、人物、责任机构、可用决策、指标与持久状态变化、场景变化、即时后果、日志、确定性态势摘要和下一事件。内部 ID 只用于数据映射，不在主界面展示。
+
+reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 统一应用所选分支的 effects；`ADVANCE_EVENT` 按定义推进到下一注入；`RESET_MODULE` 创建全新 run。事件注入时间与分支后果时间分开保存，因为源脚本中的三个事件存在时间重叠，不得为了线性播放改写原始时间。
+
+跨事件持久状态至少包括：公共候诊区停留时长、隔离时刻、呕吐暴露是否发生、需评估人数、患者是否配合、采样是否可继续、沟通耗时、舆情风险是否提前、疾控响应是否启动、是否在 15 分钟内报告，以及累计响应延迟。
+
+### 7.2 M1-1 急诊分诊
 
 初始：`10:42 / deciding / suspectedCases=1 / waitingAreaPeople=18 / assessmentRequired=null`。
 
@@ -162,6 +177,21 @@ type SimulationState = {
 - `exposureDuration=78 min`
 - `assessmentRequired=21`，语义为“本事件新增需评估人员”。
 - cue：候诊区呕吐事件、污染半径、保洁/候诊者停留、隔离延后。
+
+### 7.3 M1-2 患者拒绝
+
+进入时间固定为 `11:12`。M1-1 路径继续保留：11:05 隔离路径中患者位于隔离区；12:00 隔离路径中患者在 11:12 仍位于分诊区域。
+
+- 风险沟通路径：记录 `communicationDelayMinutes=15`、患者配合、采样可继续；显示家属视频联系。
+- 直接推进路径：记录患者短视频上传和 `earlyPublicOpinionRisk=true`；不得添加浏览量、转发量或影响人数。
+
+### 7.4 M1-3 首次报告
+
+进入时间固定为 `11:20`。患者沟通、暴露评估和舆情状态继续保留，物理场景降低背景人群显著度，决策面板成为焦点。
+
+- 先行快报路径：记录 15 分钟内报告、疾控响应启动、12:00 前到场。
+- 等待检验路径：记录 `responseDelayMinutes=130`，显示 `+2h10m`；该字段必须带入后续接触追踪等事件。
+- 结果确认后进入 `module-complete`，不得自动启动 Module 2。
 
 ## 8. 不变量
 

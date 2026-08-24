@@ -7,12 +7,19 @@ import { IntelDock } from './components/IntelDock'
 import { MetricStrip } from './components/MetricStrip'
 import { ReviewPlaceholder } from './components/ReviewPlaceholder'
 import { createInitialState, simulationReducer } from './simulation/reducer'
+import { getEventDefinition } from './simulation/sourceData'
+import type { MetricKey } from './simulation/types'
 
 export default function App() {
   const [view, setView] = useState<AppView>('command')
   const [state, dispatch] = useReducer(simulationReducer, undefined, () => createInitialState())
 
-  const reset = () => dispatch({ type: 'RESET_NODE' })
+  const reset = () => dispatch({ type: 'RESET_MODULE' })
+  const currentEvent = getEventDefinition(state.currentEventId)
+  const visibleMetrics: MetricKey[] = [...currentEvent.visibleMetrics]
+  if (state.currentEventId === 'M1-2' && state.persistent.earlyPublicOpinionRisk) {
+    visibleMetrics.push('publicOpinionRisk')
+  }
 
   return (
     <AppShell view={view} onViewChange={setView}>
@@ -28,11 +35,12 @@ export default function App() {
           </div>
           <MetricStrip
             metrics={state.metrics}
-            visibleKeys={['confirmedCases', 'suspectedCases', 'assessmentRequired', 'exposureDuration']}
+            visibleKeys={visibleMetrics}
           />
           <div className="workspace-grid">
             <HospitalScene
-              phase={state.scenePhase}
+              eventId={state.currentEventId}
+              scene={state.scene}
               activeHotspot={state.activeHotspot}
               onHotspot={(hotspot) => dispatch({ type: 'SELECT_HOTSPOT', hotspot })}
               onClearHotspot={() => dispatch({ type: 'CLEAR_HOTSPOT' })}
@@ -40,6 +48,7 @@ export default function App() {
             <DecisionPanel
               state={state}
               onResolve={(decision) => dispatch({ type: 'RESOLVE_DECISION', decision })}
+              onAdvance={() => dispatch({ type: 'ADVANCE_EVENT' })}
               onReset={reset}
             />
           </div>

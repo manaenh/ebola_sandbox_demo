@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import type { SimulationState } from '../simulation/types'
+import { eventOrder, getEventDefinition } from '../simulation/sourceData'
+import type { EventId, SimulationState } from '../simulation/types'
 
 type DockTab = 'tree' | 'timeline' | 'chain'
 
@@ -11,8 +12,6 @@ const tabLabels: { id: DockTab; label: string }[] = [
 
 export function IntelDock({ state }: { state: SimulationState }) {
   const [tab, setTab] = useState<DockTab>('tree')
-  const isResolved = state.phase === 'resolved'
-  const isRapid = state.selectedDecision === 'rapid-epidemiology'
 
   return (
     <section className="intel-dock" aria-label="推演信息视图">
@@ -30,82 +29,109 @@ export function IntelDock({ state }: { state: SimulationState }) {
         ))}
       </div>
 
-      {tab === 'tree' && (
-        <div className="decision-tree" role="tabpanel" aria-label="急诊分诊动态决策树">
-          <div className="tree-root-node">
-            <small>当前事件</small>
-            <strong>急诊分诊卡</strong>
-            <span>我在这里 · 选择响应路径</span>
-          </div>
-          <div className="tree-main-stem" aria-hidden="true" />
-          <div className="tree-paths">
-            <section className={`tree-path path-a ${isResolved && isRapid ? 'selected' : ''} ${isResolved && !isRapid ? 'subdued' : ''}`}>
-              <div className="tree-action-node">
-                <i>A</i><div><small>方案 A</small><strong>立即升级流行病学问诊</strong></div>
-              </div>
-              <div className="tree-path-stem" aria-hidden="true" />
-              <div className={`tree-consequence ${isResolved && isRapid ? 'revealed' : 'concealed'}`}>
-                <small>{isResolved && isRapid ? '已发生结果' : '结果待揭示'}</small>
-                <strong>{isResolved && isRapid ? '11:05 完成隔离' : '••••••'}</strong>
-                <span>{isResolved && isRapid ? '公共候诊区停留 23 分钟' : '选择后显示后果'}</span>
-              </div>
-            </section>
-
-            <section className={`tree-path path-b ${isResolved && !isRapid ? 'selected alert' : ''} ${isResolved && isRapid ? 'subdued' : ''}`}>
-              <div className="tree-action-node">
-                <i>B</i><div><small>方案 B</small><strong>先完成急诊基础评估</strong></div>
-              </div>
-              <div className="tree-path-stem" aria-hidden="true" />
-              <div className={`tree-consequence ${isResolved && !isRapid ? 'revealed alert' : 'concealed'}`}>
-                <small>{isResolved && !isRapid ? '已发生结果' : '结果待揭示'}</small>
-                <strong>{isResolved && !isRapid ? '12:00 完成隔离' : '••••••'}</strong>
-                <span>{isResolved && !isRapid ? '发生呕吐 · 新增需评估 21 人' : '选择后显示后果'}</span>
-              </div>
-            </section>
-          </div>
-        </div>
-      )}
-
-      {tab === 'timeline' && (
-        <div className="timeline-view" role="tabpanel" aria-label="急诊分诊事件时间线">
-          <div className="timeline-direction"><span>过去</span><i /><span>当前</span><i /><span>后续</span></div>
-          <div className="event-timeline">
-            <TimelineItem date="07月27日" time="境外" title="发生体液暴露" status="occurred" />
-            <TimelineItem date="08月03日" time="—" title="出现乏力、低热" status="occurred" />
-            <TimelineItem date="08月05日" time="10:18" title="抵达市中心医院" status="occurred" />
-            <TimelineItem date="08月05日" time="10:42" title="急诊分诊卡" status={isResolved ? 'occurred' : 'current'} />
-            {isResolved && (
-              <TimelineItem
-                date="08月05日"
-                time={isRapid ? '11:05' : '12:00'}
-                title={isRapid ? '患者进入隔离区' : '呕吐事件后完成隔离'}
-                status="current"
-              />
-            )}
-            <TimelineItem date="08月05日" time="11:12" title="患者沟通" status="pending" />
-          </div>
-        </div>
-      )}
-
-      {tab === 'chain' && (
-        <div className="chain-view" role="tabpanel" aria-label="传播与暴露链">
-          <div className="transmission-chain">
-            <div className="chain-node infected"><small>已知感染者</small><strong>境外感染者</strong><span>源暴露病例</span></div>
-            <div className="chain-relation effective"><span>07月27日 · 有效暴露</span><i /></div>
-            <div className="chain-node suspected"><small>当前调查对象</small><strong>周启航</strong><span>疑似病例</span></div>
-            <div className="chain-relation contact"><span>接触调查尚未启动</span><i /></div>
-            <div className="chain-node unrevealed"><small>后续关系</small><strong>待揭示</strong><span>不提前显示结果</span></div>
-          </div>
-          <div className="chain-legend">
-            <span><i className="infected" />感染</span>
-            <span><i className="effective" />有效暴露</span>
-            <span><i className="contact" />接触但尚未判定</span>
-            <span><i className="unrevealed" />尚未发生或揭示</span>
-            <strong>接触 ≠ 有效暴露 ≠ 感染</strong>
-          </div>
-        </div>
-      )}
+      {tab === 'tree' && <ProgressiveDecisionTree state={state} />}
+      {tab === 'timeline' && <EventTimeline state={state} />}
+      {tab === 'chain' && <ExposureChain />}
     </section>
+  )
+}
+
+function ProgressiveDecisionTree({ state }: { state: SimulationState }) {
+  const currentIndex = eventOrder.indexOf(state.currentEventId)
+  const revealedEvents = eventOrder.filter((_, index) => (
+    state.phase === 'module-complete' || index <= currentIndex
+  ))
+
+  return (
+    <div className="progressive-tree" role="tabpanel" aria-label="首诊响应动态决策树">
+      {revealedEvents.map((eventId, index) => {
+        const event = getEventDefinition(eventId)
+        const selectedId = state.decisions[eventId]
+        const isCurrent = state.phase !== 'module-complete' && eventId === state.currentEventId
+
+        return (
+          <div className="tree-stage-wrap" key={eventId}>
+            <section className={`tree-stage ${isCurrent ? 'current' : 'completed'}`}>
+              <div className="stage-event-node">
+                <small>{isCurrent ? '当前事件' : '已完成'}</small>
+                <strong>{event.decisionTreeLabel}</strong>
+                <span>{event.time}</span>
+              </div>
+              <div className="stage-stem" aria-hidden="true" />
+              <div className="stage-branches">
+                {event.decisions.map((option) => {
+                  const isSelected = selectedId === option.id
+                  return (
+                    <div
+                      className={`stage-branch ${isSelected ? 'selected' : ''} ${selectedId && !isSelected ? 'subdued' : ''}`}
+                      key={option.id}
+                    >
+                      <i>{option.code}</i>
+                      <div>
+                        <strong>{option.title}</strong>
+                        <small>{isSelected ? option.effects.outcome.label : isCurrent ? '可选路径' : '未选择路径'}</small>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </section>
+            {index < revealedEvents.length - 1 && <div className="tree-stage-connector" aria-hidden="true"><i /></div>}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function EventTimeline({ state }: { state: SimulationState }) {
+  return (
+    <div className="timeline-view" role="tabpanel" aria-label="首诊响应事件时间线">
+      <div className="timeline-direction"><span>过去</span><i /><span>当前</span><i /><span>后续</span></div>
+      <div className="event-timeline module-one-timeline">
+        {eventOrder.map((eventId) => {
+          const event = getEventDefinition(eventId)
+          const status = timelineStatus(eventId, state)
+          return (
+            <TimelineItem
+              key={eventId}
+              date="08月05日"
+              time={event.time}
+              title={event.title}
+              status={status}
+            />
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+function timelineStatus(eventId: EventId, state: SimulationState): TimelineStatus {
+  if (state.phase === 'module-complete') return 'occurred'
+  if (eventId === state.currentEventId) return 'current'
+  if (state.completedEventIds.includes(eventId)) return 'occurred'
+  return 'pending'
+}
+
+function ExposureChain() {
+  return (
+    <div className="chain-view" role="tabpanel" aria-label="传播与暴露链">
+      <div className="transmission-chain">
+        <div className="chain-node infected"><small>已知感染者</small><strong>境外感染者</strong><span>源暴露病例</span></div>
+        <div className="chain-relation effective"><span>07月27日 · 有效暴露</span><i /></div>
+        <div className="chain-node suspected"><small>当前调查对象</small><strong>周启航</strong><span>疑似病例</span></div>
+        <div className="chain-relation contact"><span>接触调查尚未启动</span><i /></div>
+        <div className="chain-node unrevealed"><small>后续关系</small><strong>待揭示</strong><span>不提前显示结果</span></div>
+      </div>
+      <div className="chain-legend">
+        <span><i className="infected" />感染</span>
+        <span><i className="effective" />有效暴露</span>
+        <span><i className="contact" />接触但尚未判定</span>
+        <span><i className="unrevealed" />尚未发生或揭示</span>
+        <strong>接触 ≠ 有效暴露 ≠ 感染</strong>
+      </div>
+    </div>
   )
 }
 
@@ -123,7 +149,7 @@ function TimelineItem({
   status: TimelineStatus
 }) {
   const statusLabel: Record<TimelineStatus, string> = {
-    occurred: '已发生',
+    occurred: '已完成',
     current: '当前',
     pending: '待发生',
   }

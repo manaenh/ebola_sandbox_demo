@@ -1,10 +1,11 @@
 import type { KeyboardEvent } from 'react'
 import { hotspotCopy } from '../simulation/sourceData'
-import type { HotspotId, ScenePhase } from '../simulation/types'
+import type { EventId, HotspotId, SceneState } from '../simulation/types'
 import { CharacterAvatar } from './CharacterAvatar'
 
 type HospitalSceneProps = {
-  phase: ScenePhase
+  eventId: EventId
+  scene: SceneState
   activeHotspot: HotspotId | null
   onHotspot: (id: HotspotId) => void
   onClearHotspot: () => void
@@ -18,7 +19,7 @@ const waitingPeople = [
   [448, 348, 1], [477, 370, 2],
 ] as const
 
-export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot }: HospitalSceneProps) {
+export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClearHotspot }: HospitalSceneProps) {
   const trigger = (event: KeyboardEvent<SVGGElement>, id: HotspotId) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -26,7 +27,13 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
     }
   }
 
-  const isDelayed = phase === 'exposure-event'
+  const patientStatus = scene.patientMood === 'resistant'
+    ? '拒绝采血'
+    : scene.patientMood === 'cooperative'
+      ? '已配合'
+      : scene.patientMood === 'distressed'
+        ? '情绪焦虑'
+        : '疑似病例'
 
   return (
     <section className="scene-panel" aria-labelledby="scene-title">
@@ -37,7 +44,7 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
         </div>
       </div>
 
-      <div className={`scene-canvas phase-${phase}`}>
+      <div className={`scene-canvas event-${eventId.toLowerCase()} location-${scene.patientLocation} mood-${scene.patientMood} interaction-${scene.interaction} phone-${scene.phoneMode} response-${scene.cdcResponse} exposure-${scene.exposureEvent ? 'active' : 'clear'}`}>
         <svg viewBox="0 0 1000 540" role="img" aria-label="市中心医院急诊分诊数字孪生场景。周启航正在分诊，分诊护士位于分诊台后，公共候诊区有十八人，右上方为隔离室。">
           <defs>
             <linearGradient id="floor" x1="0" x2="1" y1="0" y2="1">
@@ -147,7 +154,7 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
             <ellipse className="hotspot-ring" cx="330" cy="395" rx="126" ry="91" />
           </g>
 
-          <g className={`exposure-zone ${isDelayed ? 'visible' : ''}`} aria-hidden={!isDelayed}>
+          <g className={`exposure-zone ${scene.exposureEvent ? 'visible' : ''}`} aria-hidden={!scene.exposureEvent}>
             <ellipse cx="556" cy="373" rx="78" ry="43" />
             <ellipse cx="556" cy="373" rx="46" ry="26" />
             <path d="M507 399 L570 367 L629 395 L565 427Z" />
@@ -157,6 +164,12 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
               <text className="zone-english" x="10" y="29">EXPOSURE EVENT</text>
             </g>
           </g>
+
+          {eventId !== 'M1-1' && (
+            <g className="doctor-interaction" aria-label="感染科医生正在与患者及急诊团队沟通">
+              <CharacterAvatar role="doctor" x={650} y={337} scale={1.02} facing="left" />
+            </g>
+          )}
 
           <g
             className={`hotspot character-hotspot patient-hotspot ${activeHotspot === 'zhou-qihang' ? 'active' : ''}`}
@@ -174,8 +187,17 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
           <g className="patient-marker">
             <path d="M16-61 L42-76 H119" />
             <rect x="40" y="-91" width="139" height="25" rx="12" />
-            <text x="52" y="-75">周启航 · 疑似病例</text>
+            <text x="52" y="-75">周启航 · {patientStatus}</text>
           </g>
+
+          {scene.phoneMode !== 'none' && (
+            <g className={`phone-state ${scene.phoneMode}`}>
+              <rect x="-8" y="-116" width="19" height="29" rx="3" />
+              <circle cx="1.5" cy="-92" r="1.5" />
+              <path d="M-3-110 H6 M-3-105 H6" />
+              <text x="18" y="-99">{scene.phoneMode === 'family-video' ? '家属视频联系' : '短视频已上传'}</text>
+            </g>
+          )}
 
           <g
             className={`hotspot route-hotspot ${activeHotspot === 'isolation-route' ? 'active' : ''}`}

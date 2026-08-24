@@ -1,56 +1,92 @@
-import { SOURCE_DOCUMENT } from './sourceData'
-import type { MetricKey, MetricValue, SimulationAction, SimulationState } from './types'
-
-const source = (locator: string, note?: string) => ({
-  kind: 'source' as const,
-  document: SOURCE_DOCUMENT,
-  locator,
-  note,
-})
-
-const derived = (locator: string, note: string) => ({
-  kind: 'derived' as const,
-  document: SOURCE_DOCUMENT,
-  locator,
-  note,
-})
-
-const metric = (
-  value: number | null,
-  unit: MetricValue['unit'],
-  provenance: MetricValue['provenance'],
-  context?: string,
-): MetricValue => ({ value, unit, provenance, context })
+import { derivedMetric, getEventDefinition, sourceMetric } from './sourceData'
+import type {
+  EventId,
+  MetricKey,
+  MetricValue,
+  SceneState,
+  SimulationAction,
+  SimulationState,
+} from './types'
 
 const initialMetrics = (): Record<MetricKey, MetricValue> => ({
-  confirmedCases: metric(0, 'cases', derived('M1-1', '确证发生于 M2-4，此时尚无确诊病例')),
-  suspectedCases: metric(1, 'cases', derived('M1-1', '当前事件唯一就诊患者')),
-  assessmentRequired: metric(null, 'people', source('M1-1'), '尚未完成暴露评估'),
-  riskContacts: metric(null, 'people', source('M1-1'), '尚未分类'),
-  tracingProgress: metric(null, 'percent', source('M1-1'), '追踪尚未启动'),
-  exposureDuration: metric(null, 'minutes', source('M1-1'), '等待决策结果'),
+  confirmedCases: derivedMetric(0, 'cases', 'M1-1', '确证发生于后续模块，此时尚无确诊病例'),
+  suspectedCases: derivedMetric(1, 'cases', 'M1-1', '当前事件唯一就诊患者'),
+  assessmentRequired: sourceMetric(null, 'people', 'M1-1', '尚未完成暴露评估'),
+  riskContacts: sourceMetric(null, 'people', 'M1-1', '尚未分类'),
+  tracingProgress: sourceMetric(null, 'percent', 'M1-1', '追踪尚未启动'),
+  exposureDuration: sourceMetric(null, 'minutes', 'M1-1', '等待决策结果'),
+  publicOpinionRisk: sourceMetric(null, 'status', 'M1-2', '当前尚未触发', '未触发'),
+  cdcResponse: sourceMetric(null, 'status', 'M1-3', '等待首次报告决策', '待决策'),
+  responseDelay: sourceMetric(null, 'status', 'M1-3', '等待首次报告决策', '待决策'),
+})
+
+const initialScene = (): SceneState => ({
+  patientLocation: 'triage',
+  patientMood: 'unwell',
+  interaction: 'none',
+  phoneMode: 'none',
+  exposureEvent: false,
+  cdcResponse: 'none',
 })
 
 export const createInitialState = (runId = 1): SimulationState => ({
   runId,
-  nodeId: 'M1-1',
-  simulationTime: '2026-08-05T10:42:00+08:00',
+  currentEventId: 'M1-1',
+  simulationTime: getEventDefinition('M1-1').isoTime,
   phase: 'deciding',
-  scenePhase: 'observing',
-  selectedDecision: null,
   activeHotspot: null,
   metrics: initialMetrics(),
-  revealedNodes: ['M1-1'],
-  eventLog: [
-    {
-      id: 'm11-arrival',
-      time: '10:42',
-      title: '急诊分诊卡触发',
-      detail: '高热、乏力、腹泻；旅行史仅记录为“非洲出差”。',
-      tone: 'active',
-    },
-  ],
+  scene: initialScene(),
+  persistent: {
+    waitingAreaMinutes: null,
+    isolationTime: null,
+    vomitingExposureOccurred: false,
+    assessmentRequired: null,
+    patientCooperative: null,
+    samplingReady: false,
+    communicationDelayMinutes: null,
+    earlyPublicOpinionRisk: false,
+    cdcResponseStarted: false,
+    reportWithin15Minutes: null,
+    responseDelayMinutes: 0,
+  },
+  decisions: {},
+  completedEventIds: [],
+  situationSummary: getEventDefinition('M1-1').situationSummary,
+  eventLog: [{
+    id: 'm11-arrival',
+    time: '10:42',
+    title: '急诊分诊卡触发',
+    detail: '高热、乏力、腹泻；旅行史仅记录为“非洲出差”。',
+    tone: 'active',
+  }],
 })
+
+function sceneAtEvent(eventId: EventId, state: SimulationState): SceneState {
+  if (eventId === 'M1-2') {
+    return {
+      ...state.scene,
+      patientLocation: state.persistent.isolationTime === '11:05' ? 'isolation' : 'triage',
+      patientMood: 'resistant',
+      interaction: 'communication',
+      phoneMode: 'none',
+      exposureEvent: false,
+      cdcResponse: 'none',
+    }
+  }
+
+  if (eventId === 'M1-3') {
+    return {
+      ...state.scene,
+      patientLocation: state.persistent.isolationTime === '11:05' ? 'isolation' : 'triage',
+      interaction: 'coordination',
+      exposureEvent: false,
+      cdcResponse: 'none',
+    }
+  }
+
+  return initialScene()
+}
 
 export function simulationReducer(
   state: SimulationState,
@@ -64,70 +100,65 @@ export function simulationReducer(
     return { ...state, activeHotspot: null }
   }
 
-  if (action.type === 'RESET_NODE') {
+  if (action.type === 'RESET_MODULE') {
     return createInitialState(state.runId + 1)
   }
 
   if (action.type === 'RESOLVE_DECISION') {
-    if (state.phase === 'resolved') return state
+    if (state.phase !== 'deciding') return state
 
-    if (action.decision === 'rapid-epidemiology') {
-      return {
-        ...state,
-        phase: 'resolved',
-        scenePhase: 'isolated',
-        selectedDecision: action.decision,
-        simulationTime: '2026-08-05T11:05:00+08:00',
-        metrics: {
-          ...state.metrics,
-          exposureDuration: metric(23, 'minutes', source('M1-1｜效果反馈/数据')),
-        },
-        revealedNodes: [...state.revealedNodes, 'M1-1-A'],
-        eventLog: [
-          ...state.eventLog,
-          {
-            id: 'm11-a-isolation',
-            time: '11:05',
-            title: '患者进入预设隔离区',
-            detail: '公共候诊区停留 23 分钟；需评估人员仍待逐一判定。',
-            tone: 'complete',
-          },
-        ],
-      }
-    }
+    const event = getEventDefinition(state.currentEventId)
+    const option = event.decisions.find((decision) => decision.id === action.decision)
+    if (!option) return state
 
+    const effects = option.effects
     return {
       ...state,
       phase: 'resolved',
-      scenePhase: 'exposure-event',
-      selectedDecision: action.decision,
-      simulationTime: '2026-08-05T12:00:00+08:00',
-      metrics: {
-        ...state.metrics,
-        assessmentRequired: metric(
-          21,
-          'people',
-          source('M1-1｜效果反馈/数据'),
-          '本事件新增需评估人员，不等同于密切接触者',
-        ),
-        exposureDuration: metric(78, 'minutes', source('干预前后效果对比｜首诊至隔离')),
-      },
-      revealedNodes: [...state.revealedNodes, 'M1-1-B'],
+      simulationTime: effects.simulationTime ?? state.simulationTime,
+      activeHotspot: null,
+      metrics: { ...state.metrics, ...effects.metricChanges },
+      scene: { ...state.scene, ...effects.sceneChanges },
+      persistent: { ...state.persistent, ...effects.persistentChanges },
+      decisions: { ...state.decisions, [state.currentEventId]: option.id },
+      completedEventIds: state.completedEventIds.includes(state.currentEventId)
+        ? state.completedEventIds
+        : [...state.completedEventIds, state.currentEventId],
+      situationSummary: effects.situationSummary,
+      eventLog: [...state.eventLog, ...effects.eventLog],
+    }
+  }
+
+  if (action.type === 'ADVANCE_EVENT') {
+    if (state.phase !== 'resolved') return state
+
+    const current = getEventDefinition(state.currentEventId)
+    if (!current.nextEvent) {
+      return {
+        ...state,
+        phase: 'module-complete',
+        activeHotspot: null,
+        situationSummary: '首诊发现与即时控制完成，当前路径已保存。',
+      }
+    }
+
+    const next = getEventDefinition(current.nextEvent)
+    return {
+      ...state,
+      currentEventId: next.id,
+      simulationTime: next.isoTime,
+      phase: 'deciding',
+      activeHotspot: null,
+      scene: sceneAtEvent(next.id, state),
+      situationSummary: next.situationSummary,
       eventLog: [
         ...state.eventLog,
         {
-          id: 'm11-b-exposure',
-          time: '11:36',
-          title: '公共候诊区发生呕吐',
-          detail: '污染区域被圈定；相关人员进入暴露评估流程。',
-          tone: 'alert',
-        },
-        {
-          id: 'm11-b-isolation',
-          time: '12:00',
-          title: '患者完成隔离',
-          detail: '首诊至隔离 78 分钟，新增需评估人员 21 人。',
-          tone: 'complete',
+          id: `${next.id.toLowerCase()}-injection`,
+          time: next.time,
+          title: next.title,
+          detail: next.description,
+          tone: 'active',
         },
       ],
     }
