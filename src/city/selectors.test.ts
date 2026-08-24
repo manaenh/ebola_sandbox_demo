@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import fs from 'node:fs'
+import path from 'node:path'
 import { createInitialState, simulationReducer } from '../simulation/reducer'
 import type { DecisionId, SimulationState } from '../simulation/types'
 import { getCitySituation } from './selectors'
@@ -20,6 +22,31 @@ describe('Shenzhen city situation selector', () => {
     expect(situation.locations.find((item) => item.id === 'central-hospital')?.status).toBe('suspected-location')
     expect(situation.locations.every((item) => !item.status.includes('infected'))).toBe(true)
     expect(situation.summary).toContain('不代表沿途发生传播')
+    expect(situation.locations.some((item) => item.id === 'convenience-store')).toBe(true)
+    expect(situation.locations.some((item) => item.shortLabel === '社区活动点')).toBe(false)
+    expect(situation.locations.find((item) => item.id === 'airport')?.coordinateKind).toBe('real')
+    expect(situation.locations.find((item) => item.id === 'central-hospital')?.coordinateKind).toBe('scenario')
+  })
+
+  it('ships real geographic geometry as local files for offline rendering', () => {
+    const boundary = JSON.parse(fs.readFileSync(path.resolve('public/maps/shenzhen-boundary.geojson'), 'utf8'))
+    const districts = JSON.parse(fs.readFileSync(path.resolve('public/maps/shenzhen-districts.geojson'), 'utf8'))
+    expect(boundary.type).toBe('Feature')
+    expect(boundary.geometry.type).toBe('MultiPolygon')
+    expect(boundary.properties.sourceRelation).toBe(3464353)
+    expect(boundary.properties.source).toContain('OpenStreetMap')
+    expect(districts.type).toBe('FeatureCollection')
+    expect(districts.features).toHaveLength(9)
+    expect(districts.features.every((feature: { geometry: { type: string } }) => feature.geometry.type === 'MultiPolygon')).toBe(true)
+  })
+
+  it('keeps the default map focused and exposes movement only as a trajectory layer', () => {
+    const situation = getCitySituation(createInitialState())
+    expect(situation.locations.filter((item) => item.visibleByDefault).map((item) => item.id)).toEqual([
+      'airport', 'home', 'central-hospital', 'cdc',
+    ])
+    expect(situation.routes.filter((route) => route.kind === 'trajectory')).toHaveLength(5)
+    expect(situation.routes.every((route) => route.kind === 'trajectory' || route.kind === 'response')).toBe(true)
   })
 
   it('shows the early-control and timely-response path without creating contact counts', () => {

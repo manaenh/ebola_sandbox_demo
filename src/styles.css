@@ -265,18 +265,23 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .city-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(285px, 340px); gap: 14px; min-height: 0; }
 .city-map-panel, .city-location-detail { border: 1px solid var(--line); border-radius: 12px; background: rgba(11,23,29,.7); box-shadow: 0 18px 45px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.025); }
 .city-map-panel { overflow: hidden; min-width: 0; }
-.city-map-heading { min-height: 66px; display: flex; align-items: center; justify-content: space-between; gap: 30px; padding: 11px 17px; border-bottom: 1px solid rgba(137,205,218,.1); }
+.city-map-heading { min-height: 66px; display: flex; align-items: center; gap: 24px; padding: 11px 17px; border-bottom: 1px solid rgba(137,205,218,.1); }
 .city-map-heading h2 { margin: 4px 0 0; font-size: 16px; font-weight: 500; }
-.city-map-heading > p { max-width: 480px; margin: 0; color: var(--muted); font-size: 9px; line-height: 1.55; text-align: right; }
+.city-map-heading > p { flex: 1; max-width: 480px; margin: 0 0 0 auto; color: var(--muted); font-size: 9px; line-height: 1.55; text-align: right; }
+.trajectory-toggle { flex: 0 0 auto; padding: 7px 10px; border: 1px solid rgba(137,205,218,.17); border-radius: 5px; background: transparent; color: #78939a; cursor: pointer; font-size: 9px; }
+.trajectory-toggle:hover, .trajectory-toggle[aria-pressed="true"] { border-color: rgba(89,225,236,.38); color: #c2dadd; background: rgba(89,225,236,.055); }
+.toggle-indicator { width: 6px; height: 6px; display: inline-block; margin-right: 7px; border: 1px solid currentColor; border-radius: 50%; }
+.trajectory-toggle[aria-pressed="true"] .toggle-indicator { background: var(--cyan); border-color: var(--cyan); box-shadow: 0 0 8px rgba(89,225,236,.5); }
 .city-map-canvas { height: clamp(430px, calc(100vh - 305px), 625px); min-height: 430px; position: relative; overflow: hidden; background: #07151b; }
 .city-map-canvas::after { content: ''; pointer-events: none; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(89,225,236,.018) 0 1px, transparent 1px 4px); background-size: 100% 4px; opacity: .32; }
 .city-map-canvas svg { width: 100%; height: 100%; display: block; }
-.city-water { fill: #071218; stroke: rgba(89,225,236,.12); stroke-width: 1; }
-.shenzhen-outline { fill: url(#city-land); stroke: rgba(89,225,236,.34); stroke-width: 1.4; }
-.district-lines path { fill: none; stroke: rgba(137,205,218,.075); stroke-width: 1; stroke-dasharray: 3 7; }
-.city-labels text { fill: rgba(120,160,169,.23); font: 500 14px "Microsoft YaHei", sans-serif; letter-spacing: .14em; }
+.city-water { fill: #061218; }
+.shenzhen-outline { fill: url(#city-land); stroke: rgba(105,205,218,.38); stroke-width: 1.2; vector-effect: non-scaling-stroke; }
+.district-lines path { fill: none; stroke: rgba(137,205,218,.095); stroke-width: .8; vector-effect: non-scaling-stroke; }
+.shenzhen-map-label { fill: rgba(151,190,198,.17); font: 500 37px "Microsoft YaHei", sans-serif; letter-spacing: .24em; pointer-events: none; }
+.map-message { fill: #5d7a82; font: 500 11px "Microsoft YaHei", sans-serif; text-anchor: middle; }
 .city-routes path { fill: none; stroke-width: 1.5; stroke-linecap: round; marker-end: url(#route-arrow); }
-.city-route.movement path { stroke: rgba(89,225,236,.5); stroke-dasharray: 5 7; }
+.city-route.trajectory path { stroke: rgba(89,225,236,.43); stroke-dasharray: 5 7; }
 .city-route.response.pending path { stroke: rgba(111,139,147,.38); stroke-dasharray: 3 8; }
 .city-route.response.active path { stroke: var(--teal); stroke-width: 2; filter: url(#city-glow); }
 .city-route.response.delayed path { stroke: var(--coral); stroke-dasharray: 3 7; }
@@ -302,15 +307,20 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .city-location.status-response-delayed .location-core { stroke: var(--coral); }
 .city-location.status-response-delayed .location-status { fill: var(--coral); }
 .city-location.status-future { opacity: .34; }
+.city-location.category-trajectory { opacity: .72; }
+.city-location.category-trajectory.selected, .city-location.category-trajectory:hover { opacity: 1; }
+.city-location.category-trajectory .location-label rect { fill: rgba(7,16,21,.75); }
+.city-location.category-event .location-core { stroke-width: 2; }
 .city-location:hover .location-label rect, .city-location:focus-visible .location-label rect, .city-location.selected .location-label rect { stroke: rgba(89,225,236,.5); }
 .city-location.selected .location-core { filter: url(#city-glow); stroke-width: 2.3; }
 .city-map-legend { position: absolute; left: 17px; bottom: 29px; display: flex; gap: 13px; padding: 7px 10px; border-radius: 5px; background: rgba(7,16,21,.82); color: #718e96; font-size: 7px; }
 .city-map-legend span { white-space: nowrap; }
 .city-map-legend i { width: 7px; height: 7px; display: inline-block; margin-right: 5px; border: 1px solid #78959d; border-radius: 50%; vertical-align: -1px; }
-.city-map-legend i.investigation, .city-map-legend i.suspected-location { border-color: var(--amber); }
-.city-map-legend i.exposure-event { border-color: var(--coral); background: rgba(255,114,111,.18); }
-.city-map-legend i.response-active { border-color: var(--teal); background: rgba(100,230,195,.18); }
+.city-map-legend i.event-node { border-color: var(--amber); background: rgba(255,180,91,.16); }
+.city-map-legend i.response-node { border-color: var(--teal); background: rgba(100,230,195,.15); }
+.city-map-legend i.trajectory-node { border-color: #78959d; }
 .city-map-note { position: absolute; left: 18px; bottom: 10px; color: #486269; font-size: 7px; }
+.map-attribution { position: absolute; right: 17px; bottom: 10px; color: #3f5960; font-size: 6px; }
 .city-location-detail { min-height: 100%; display: flex; flex-direction: column; padding: 22px 20px 18px; }
 .location-detail-heading { display: flex; justify-content: space-between; align-items: center; }
 .location-detail-heading span { color: var(--amber); font-size: 9px; font-weight: 600; }
@@ -318,6 +328,8 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .status-response-active .location-detail-heading span { color: var(--teal); }
 .location-detail-heading small { color: var(--dim); font-size: 7px; }
 .city-location-detail h2 { margin: 12px 0 8px; font-size: 21px; font-weight: 500; }
+.coordinate-badge { width: fit-content; margin: -2px 0 11px; padding: 3px 6px; border: 1px solid rgba(137,205,218,.13); border-radius: 3px; color: #68848b; font-size: 7px; }
+.coordinate-badge.scenario { border-color: rgba(255,180,91,.18); color: #9d825f; }
 .city-location-detail > p { margin: 0; color: var(--muted); font-size: 10px; line-height: 1.7; }
 .location-facts { margin-top: 19px; border-top: 1px solid rgba(137,205,218,.11); }
 .location-facts div { display: flex; align-items: center; justify-content: space-between; padding: 11px 0; border-bottom: 1px solid rgba(137,205,218,.08); }

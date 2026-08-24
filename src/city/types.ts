@@ -2,23 +2,18 @@ import type { EventId } from '../simulation/types'
 
 export type CityLocationId =
   | 'airport'
-  | 'airport-transit'
+  | 'airport-bus'
   | 'home'
-  | 'community'
+  | 'convenience-store'
   | 'ride-hailing'
   | 'central-hospital'
   | 'cdc'
   | 'designated-hospital'
   | 'laboratory'
 
-export type CityLocationKind =
-  | 'entry'
-  | 'transport'
-  | 'residence'
-  | 'community'
-  | 'hospital'
-  | 'response'
-  | 'laboratory'
+export type CityLocationCategory = 'event' | 'response' | 'trajectory'
+export type CityLocationIcon = 'airport' | 'transport' | 'home' | 'place' | 'hospital' | 'response' | 'laboratory'
+export type CoordinateKind = 'real' | 'scenario'
 
 export type CityLocationStatus =
   | 'passed'
@@ -34,9 +29,11 @@ export type CityLocationDefinition = {
   id: CityLocationId
   name: string
   shortLabel: string
-  kind: CityLocationKind
-  x: number
-  y: number
+  category: CityLocationCategory
+  icon: CityLocationIcon
+  coordinates: [longitude: number, latitude: number]
+  coordinateKind: CoordinateKind
+  visibleByDefault: boolean
   hasScene: boolean
   relatedEvents: EventId[]
   sourceNote: string
@@ -53,7 +50,7 @@ export type CityRoute = {
   id: string
   from: CityLocationId
   to: CityLocationId
-  kind: 'movement' | 'response'
+  kind: 'trajectory' | 'response'
   status: 'completed' | 'pending' | 'active' | 'delayed'
   label?: string
 }

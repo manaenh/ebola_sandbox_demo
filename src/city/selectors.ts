@@ -86,11 +86,11 @@ export function getCitySituation(state: SimulationState): CitySituation {
   })
 
   const routes: CityRoute[] = [
-    { id: 'arrival-transit', from: 'airport', to: 'airport-transit', kind: 'movement', status: 'completed' },
-    { id: 'transit-home', from: 'airport-transit', to: 'home', kind: 'movement', status: 'completed' },
-    { id: 'home-community', from: 'home', to: 'community', kind: 'movement', status: 'completed' },
-    { id: 'community-ride', from: 'community', to: 'ride-hailing', kind: 'movement', status: 'completed' },
-    { id: 'ride-hospital', from: 'ride-hailing', to: 'central-hospital', kind: 'movement', status: 'completed', label: '08月05日 10:18' },
+    { id: 'arrival-transit', from: 'airport', to: 'airport-bus', kind: 'trajectory', status: 'completed' },
+    { id: 'transit-home', from: 'airport-bus', to: 'home', kind: 'trajectory', status: 'completed' },
+    { id: 'home-store', from: 'home', to: 'convenience-store', kind: 'trajectory', status: 'completed' },
+    { id: 'store-ride', from: 'convenience-store', to: 'ride-hailing', kind: 'trajectory', status: 'completed' },
+    { id: 'ride-hospital', from: 'ride-hailing', to: 'central-hospital', kind: 'trajectory', status: 'completed', label: '08月05日 10:18' },
     {
       id: 'cdc-hospital', from: 'cdc', to: 'central-hospital', kind: 'response',
       status: state.module1.reportWithin15Minutes === true ? 'active' : state.module1.reportWithin15Minutes === false ? 'delayed' : 'pending',
