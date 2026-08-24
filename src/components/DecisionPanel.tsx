@@ -7,11 +7,12 @@ type DecisionPanelProps = {
   onResolve: (decision: DecisionId) => void
   onAdvance: () => void
   onReset: () => void
+  onReturnToCity: () => void
 }
 
-export function DecisionPanel({ state, onResolve, onAdvance, onReset }: DecisionPanelProps) {
+export function DecisionPanel({ state, onResolve, onAdvance, onReset, onReturnToCity }: DecisionPanelProps) {
   if (state.phase === 'module-complete') {
-    return <ModuleComplete state={state} onReset={onReset} />
+    return <ModuleComplete state={state} onReset={onReset} onReturnToCity={onReturnToCity} />
   }
 
   const event = getEventDefinition(state.currentEventId)
@@ -73,7 +74,7 @@ export function DecisionPanel({ state, onResolve, onAdvance, onReset }: Decision
   )
 }
 
-function ModuleComplete({ state, onReset }: { state: SimulationState; onReset: () => void }) {
+function ModuleComplete({ state, onReset, onReturnToCity }: { state: SimulationState; onReset: () => void; onReturnToCity: () => void }) {
   const summary = getModule1CompletionSummary(state)
 
   return (
@@ -89,6 +90,7 @@ function ModuleComplete({ state, onReset }: { state: SimulationState; onReset: (
       </div>
       <button className="next-module-button" type="button" disabled>进入转运与实验室处置</button>
       <small className="next-module-note">下一模块将在后续阶段实现</small>
+      <button className="return-city-button" type="button" onClick={onReturnToCity}>返回全局态势</button>
       <button className="reset-button" type="button" onClick={onReset}>重新推演本模块</button>
     </aside>
   )
