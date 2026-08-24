@@ -22,11 +22,6 @@ const toMultiPolygon = (geometry) => geometry.type === 'Polygon'
   ? [geometry.coordinates]
   : geometry.coordinates
 
-// d3-geo uses the spherical winding convention: exterior rings are clockwise.
-// polygon-clipping emits the opposite GeoJSON winding, so reverse every output ring.
-const orientForD3 = (multiPolygon) => multiPolygon.map((polygon) =>
-  polygon.map((ring) => [...ring].reverse()))
-
 const geometryBounds = (coordinates) => {
   const result = [Infinity, Infinity, -Infinity, -Infinity]
   const visit = (value) => {
@@ -68,12 +63,19 @@ const districtFeatures = districts.map(([relationId, name]) => {
       source: 'OpenStreetMap contributors',
       license: 'ODbL 1.0',
     },
-    geometry: { type: 'MultiPolygon', coordinates: orientForD3(clipped) },
+    geometry: { type: 'MultiPolygon', coordinates: clipped },
   }
 })
 
-const cityLand = polygonClipping.union(...districtFeatures.map((feature) =>
-  feature.geometry.coordinates.map((polygon) => polygon.map((ring) => [...ring].reverse()))))
+const cityLand = polygonClipping.union(...districtFeatures.map((feature) => feature.geometry.coordinates))
+const regionalFrame = [[[
+  [112.1, 21.2],
+  [115.9, 21.2],
+  [115.9, 24.0],
+  [112.1, 24.0],
+  [112.1, 21.2],
+]]]
+const regionalLand = polygonClipping.intersection(landMask, regionalFrame)
 const sharedProperties = {
   name: '深圳市主行政区陆域',
   source: 'OpenStreetMap contributors; Natural Earth',
@@ -85,11 +87,24 @@ const sharedProperties = {
 fs.mkdirSync(outputDir, { recursive: true })
 fs.writeFileSync(
   path.join(outputDir, 'shenzhen-boundary.geojson'),
-  JSON.stringify({ type: 'Feature', properties: sharedProperties, geometry: { type: 'MultiPolygon', coordinates: orientForD3(cityLand) } }),
+  JSON.stringify({ type: 'Feature', properties: sharedProperties, geometry: { type: 'MultiPolygon', coordinates: cityLand } }),
 )
 fs.writeFileSync(
   path.join(outputDir, 'shenzhen-districts.geojson'),
   JSON.stringify({ type: 'FeatureCollection', properties: sharedProperties, features: districtFeatures }),
 )
+fs.writeFileSync(
+  path.join(outputDir, 'pearl-river-delta-land.geojson'),
+  JSON.stringify({
+    type: 'Feature',
+    properties: {
+      name: '珠江口区域陆地背景',
+      source: 'Natural Earth',
+      license: 'Public domain',
+      note: 'Locally cropped regional context for the MapLibre command view; contains no roads, POIs, labels, or epidemic data.',
+    },
+    geometry: { type: 'MultiPolygon', coordinates: regionalLand },
+  }),
+)
 
-console.log(`Wrote ${districtFeatures.length} districts and the dissolved Shenzhen land boundary.`)
+console.log(`Wrote ${districtFeatures.length} districts, the Shenzhen boundary, and regional land context.`)

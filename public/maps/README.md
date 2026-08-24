@@ -1,11 +1,12 @@
 # 深圳离线地理数据
 
-本目录只包含全局态势页运行时需要的精简矢量数据。页面通过 D3 geographic projection + SVG 读取本地 GeoJSON，不使用在线地图瓦片或远程地图 API。
+本目录只包含全局态势页运行时需要的精简矢量数据。页面通过 MapLibre GL JS 读取本地 GeoJSON，不使用在线地图瓦片或远程地图 API。
 
 ## 文件
 
 - `shenzhen-boundary.geojson`：深圳九个连续行政区的陆域融合轮廓。
 - `shenzhen-districts.geojson`：同一范围内的区级边界，用于低对比度内部线条。
+- `pearl-river-delta-land.geojson`：从 Natural Earth 陆地数据裁剪的珠江口区域背景，用于缩放和平移时提供更广地理上下文。
 
 ## 来源与许可
 
@@ -17,7 +18,7 @@
 
 ## 生成方式
 
-`scripts/build-shenzhen-map.mjs` 将下载阶段保存在 `.source_extract/geo` 的 OSM 区级 geometry 与 Natural Earth 陆地数据相交，消除行政海域对陆地轮廓的干扰，然后生成本目录中的两个文件。最终文件保留来源、许可和 relation ID。
+`scripts/build-shenzhen-map.mjs` 将下载阶段保存在 `.source_extract/geo` 的 OSM 区级 geometry 与 Natural Earth 陆地数据相交，消除行政海域对陆地轮廓的干扰，同时裁剪珠江口区域背景，然后生成本目录中的三个文件。最终文件保留来源、许可和 relation ID。
 
 ## 点位语义
 

@@ -11,14 +11,13 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "latest",
-    "d3-geo": "^3.1.1",
+    "maplibre-gl": "5.6.0",
     "react": "latest",
     "react-dom": "latest",
     "typescript": "latest",
     "vite": "latest"
   },
   "devDependencies": {
-    "@types/d3-geo": "^3.1.1",
     "@types/node": "^26.2.0",
     "@types/react": "latest",
     "@types/react-dom": "latest",

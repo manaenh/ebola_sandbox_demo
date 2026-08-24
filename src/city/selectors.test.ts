@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createInitialState, simulationReducer } from '../simulation/reducer'
 import type { DecisionId, SimulationState } from '../simulation/types'
+import { buildRouteGeoJSON, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from './mapData'
 import { getCitySituation } from './selectors'
 
 const choose = (state: SimulationState, decision: DecisionId) => simulationReducer(state, { type: 'RESOLVE_DECISION', decision })
@@ -31,6 +32,7 @@ describe('Shenzhen city situation selector', () => {
   it('ships real geographic geometry as local files for offline rendering', () => {
     const boundary = JSON.parse(fs.readFileSync(path.resolve('public/maps/shenzhen-boundary.geojson'), 'utf8'))
     const districts = JSON.parse(fs.readFileSync(path.resolve('public/maps/shenzhen-districts.geojson'), 'utf8'))
+    const regionalLand = JSON.parse(fs.readFileSync(path.resolve('public/maps/pearl-river-delta-land.geojson'), 'utf8'))
     expect(boundary.type).toBe('Feature')
     expect(boundary.geometry.type).toBe('MultiPolygon')
     expect(boundary.properties.sourceRelation).toBe(3464353)
@@ -38,15 +40,30 @@ describe('Shenzhen city situation selector', () => {
     expect(districts.type).toBe('FeatureCollection')
     expect(districts.features).toHaveLength(9)
     expect(districts.features.every((feature: { geometry: { type: string } }) => feature.geometry.type === 'MultiPolygon')).toBe(true)
+    expect(regionalLand.geometry.type).toBe('MultiPolygon')
+    expect(regionalLand.properties.source).toBe('Natural Earth')
   })
 
   it('keeps the default map focused and exposes movement only as a trajectory layer', () => {
     const situation = getCitySituation(createInitialState())
-    expect(situation.locations.filter((item) => item.visibleByDefault).map((item) => item.id)).toEqual([
+    expect(getVisibleMapLocations(situation, false).map((item) => item.id)).toEqual([
       'airport', 'home', 'central-hospital', 'cdc',
     ])
-    expect(situation.routes.filter((route) => route.kind === 'trajectory')).toHaveLength(5)
-    expect(situation.routes.every((route) => route.kind === 'trajectory' || route.kind === 'response')).toBe(true)
+    expect(getVisibleMapLocations(situation, true).map((item) => item.id)).toEqual([
+      'airport', 'airport-bus', 'home', 'convenience-store', 'ride-hailing', 'central-hospital', 'cdc',
+    ])
+    expect(buildRouteGeoJSON(situation, false).features).toHaveLength(1)
+    expect(buildRouteGeoJSON(situation, true).features).toHaveLength(6)
+    expect(buildRouteGeoJSON(situation, true).features.filter((feature) => feature.properties?.meaning === 'movement-history')).toHaveLength(5)
+  })
+
+  it('provides wider, Shenzhen, and location camera levels without changing simulation state', () => {
+    const situation = getCitySituation(createInitialState())
+    const hospital = situation.locations.find((item) => item.id === 'central-hospital')!
+    expect(regionCamera.zoom).toBeLessThan(shenzhenCamera.zoom)
+    expect(shenzhenCamera.pitch).toBeGreaterThan(0)
+    expect(locationCamera(hospital).zoom).toBeGreaterThan(shenzhenCamera.zoom)
+    expect(locationCamera(hospital).center).toEqual(hospital.coordinates)
   })
 
   it('shows the early-control and timely-response path without creating contact counts', () => {

@@ -1,8 +1,20 @@
-import { useEffect, useMemo, useState } from 'react'
-import { geoMercator, geoPath } from 'd3-geo'
-import type { Feature, FeatureCollection, MultiPolygon, Polygon } from 'geojson'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import {
+  AttributionControl,
+  type ErrorEvent as MapErrorEvent,
+  type GeoJSONSource,
+  Map as MapLibreMap,
+  Marker as MapMarker,
+  NavigationControl,
+  setWorkerUrl,
+  type StyleSpecification,
+} from 'maplibre-gl'
+import 'maplibre-gl/dist/maplibre-gl.css'
+import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url'
+import type { GeoJSON } from 'geojson'
+import { buildRouteGeoJSON, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from '../city/mapData'
 import { getCitySituation } from '../city/selectors'
-import type { CityLocationIcon, CityLocationId, CityLocationView } from '../city/types'
+import type { CityLocationId, CityLocationView } from '../city/types'
 import type { SimulationState } from '../simulation/types'
 
 type ShenzhenSituationProps = {
@@ -10,53 +22,216 @@ type ShenzhenSituationProps = {
   onEnterScene: () => void
 }
 
-type GeographicFeature = Feature<Polygon | MultiPolygon>
-type GeographicCollection = FeatureCollection<Polygon | MultiPolygon>
+const emptyRoutes = { type: 'FeatureCollection' as const, features: [] }
 
-const MAP_SIZE: [number, number] = [1000, 560]
+setWorkerUrl(maplibreWorkerUrl)
+
+function createCommandStyle(regionalLand: GeoJSON, boundary: GeoJSON, districts: GeoJSON): StyleSpecification {
+  return {
+    version: 8,
+    name: '深圳应急指挥离线底图',
+    sources: {
+      'regional-land': {
+        type: 'geojson',
+        data: regionalLand,
+        attribution: 'Natural Earth',
+      },
+      'shenzhen-boundary': {
+        type: 'geojson',
+        data: boundary,
+        attribution: '© OpenStreetMap contributors',
+      },
+      'shenzhen-districts': {
+        type: 'geojson',
+        data: districts,
+      },
+      'simulation-routes': {
+        type: 'geojson',
+        data: emptyRoutes,
+      },
+    },
+    layers: [
+      {
+        id: 'command-background',
+        type: 'background',
+        paint: { 'background-color': '#051117' },
+      },
+      {
+        id: 'regional-land-fill',
+        type: 'fill',
+        source: 'regional-land',
+        paint: { 'fill-color': '#0a2028', 'fill-opacity': 0.96 },
+      },
+      {
+        id: 'regional-coastline',
+        type: 'line',
+        source: 'regional-land',
+        paint: { 'line-color': '#28515a', 'line-opacity': 0.55, 'line-width': 0.8 },
+      },
+      {
+        id: 'shenzhen-depth',
+        type: 'fill-extrusion',
+        source: 'shenzhen-districts',
+        paint: {
+          'fill-extrusion-color': '#123943',
+          'fill-extrusion-height': 420,
+          'fill-extrusion-base': 0,
+          'fill-extrusion-opacity': 0.76,
+          'fill-extrusion-vertical-gradient': true,
+        },
+      },
+      {
+        id: 'shenzhen-district-lines',
+        type: 'line',
+        source: 'shenzhen-districts',
+        paint: { 'line-color': '#4b7a83', 'line-opacity': 0.3, 'line-width': 0.7 },
+      },
+      {
+        id: 'shenzhen-outline',
+        type: 'line',
+        source: 'shenzhen-boundary',
+        paint: { 'line-color': '#58beca', 'line-opacity': 0.72, 'line-width': 1.35 },
+      },
+      {
+        id: 'trajectory-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'trajectory'],
+        paint: {
+          'line-color': '#59e1ec',
+          'line-opacity': 0.48,
+          'line-width': 1.6,
+          'line-dasharray': [2, 3],
+        },
+      },
+      {
+        id: 'response-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'response'],
+        paint: {
+          'line-color': [
+            'match', ['get', 'status'],
+            'active', '#64e6c3',
+            'delayed', '#ff726f',
+            '#728c93',
+          ],
+          'line-opacity': 0.78,
+          'line-width': 2.1,
+          'line-dasharray': [2, 2],
+        },
+      },
+    ],
+  }
+}
 
 export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProps) {
   const situation = useMemo(() => getCitySituation(state), [state])
   const [selectedId, setSelectedId] = useState<CityLocationId>('central-hospital')
   const [showTrajectory, setShowTrajectory] = useState(false)
-  const [boundary, setBoundary] = useState<GeographicFeature | null>(null)
-  const [districts, setDistricts] = useState<GeographicCollection | null>(null)
+  const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState(false)
+  const mapContainerRef = useRef<HTMLDivElement | null>(null)
+  const mapRef = useRef<MapLibreMap | null>(null)
+  const markersRef = useRef<MapMarker[]>([])
+  const selected = situation.locations.find((location) => location.id === selectedId) ?? situation.locations[0]
+  const visibleLocations = useMemo(
+    () => getVisibleMapLocations(situation, showTrajectory),
+    [situation, showTrajectory],
+  )
 
   useEffect(() => {
+    if (!mapContainerRef.current || mapRef.current) return
+    let disposed = false
+    let map: MapLibreMap | null = null
+    let introTimer: number | undefined
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const base = import.meta.env.BASE_URL
+
     Promise.all([
-      fetch(`${base}maps/shenzhen-boundary.geojson`).then((response) => {
-        if (!response.ok) throw new Error('boundary unavailable')
-        return response.json() as Promise<GeographicFeature>
-      }),
-      fetch(`${base}maps/shenzhen-districts.geojson`).then((response) => {
-        if (!response.ok) throw new Error('districts unavailable')
-        return response.json() as Promise<GeographicCollection>
-      }),
-    ]).then(([nextBoundary, nextDistricts]) => {
-      setBoundary(nextBoundary)
-      setDistricts(nextDistricts)
-    }).catch(() => setMapError(true))
+      fetch(`${base}maps/pearl-river-delta-land.geojson`).then((response) => response.ok ? response.json() as Promise<GeoJSON> : Promise.reject(new Error('regional map unavailable'))),
+      fetch(`${base}maps/shenzhen-boundary.geojson`).then((response) => response.ok ? response.json() as Promise<GeoJSON> : Promise.reject(new Error('boundary unavailable'))),
+      fetch(`${base}maps/shenzhen-districts.geojson`).then((response) => response.ok ? response.json() as Promise<GeoJSON> : Promise.reject(new Error('districts unavailable'))),
+    ]).then(([regionalLand, boundary, districts]) => {
+      if (disposed || !mapContainerRef.current) return
+      map = new MapLibreMap({
+        container: mapContainerRef.current,
+        style: createCommandStyle(regionalLand, boundary, districts),
+        ...regionCamera,
+        minZoom: 7.1,
+        maxZoom: 15,
+        maxPitch: 68,
+        maxBounds: [[112.05, 21.15], [115.95, 24.05]],
+        renderWorldCopies: false,
+        attributionControl: false,
+        canvasContextAttributes: { antialias: true },
+      })
+      mapRef.current = map
+      map.addControl(new NavigationControl({ visualizePitch: true, showCompass: true }), 'bottom-right')
+      map.addControl(new AttributionControl({ compact: true }), 'top-right')
+      map.once('style.load', () => {
+        setMapReady(true)
+        introTimer = window.setTimeout(() => {
+          if (!map) return
+          if (reducedMotion) map.jumpTo(shenzhenCamera)
+          else map.flyTo({ ...shenzhenCamera, duration: 1800, curve: 1.25, essential: true })
+        }, 450)
+      })
+      map.on('error', (event: MapErrorEvent) => {
+        if (/geojson|source|worker|webgl/i.test(event.error?.message ?? '')) setMapError(true)
+      })
+    }).catch(() => {
+      if (!disposed) setMapError(true)
+    })
+
+    return () => {
+      disposed = true
+      if (introTimer) window.clearTimeout(introTimer)
+      markersRef.current.forEach((marker) => marker.remove())
+      markersRef.current = []
+      map?.remove()
+      if (mapRef.current === map) mapRef.current = null
+    }
   }, [])
 
-  const projection = useMemo(() => boundary
-    ? geoMercator().fitExtent([[48, 48], [952, 506]], boundary)
-    : null, [boundary])
-  const path = useMemo(() => projection ? geoPath(projection) : null, [projection])
-  const projectLocation = (coordinates: [number, number]) => projection?.(coordinates) ?? null
-  const selected = situation.locations.find((location) => location.id === selectedId) ?? situation.locations[0]
-  const byId = new Map(situation.locations.map((location) => [location.id, location]))
-  const visibleLocations = situation.locations.filter((location) =>
-    location.visibleByDefault || (showTrajectory && location.category === 'trajectory'))
-  const visibleIds = new Set(visibleLocations.map((location) => location.id))
-  const visibleRoutes = situation.routes.filter((route) =>
-    route.kind === 'response' || (showTrajectory && visibleIds.has(route.from) && visibleIds.has(route.to)))
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    const source = map.getSource('simulation-routes') as GeoJSONSource | undefined
+    source?.setData(buildRouteGeoJSON(situation, showTrajectory))
+  }, [mapReady, showTrajectory, situation])
+
+  const focusLocation = useCallback((location: CityLocationView) => {
+    setSelectedId(location.id)
+    mapRef.current?.flyTo({ ...locationCamera(location), duration: 1100, curve: 1.15, essential: true })
+  }, [])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady) return
+    markersRef.current.forEach((marker) => marker.remove())
+    markersRef.current = visibleLocations.map((location) => {
+      const element = createLocationMarker(location, selectedId === location.id, () => focusLocation(location))
+      return new MapMarker({ element, anchor: 'center' })
+        .setLngLat(location.coordinates)
+        .addTo(map)
+    })
+    return () => {
+      markersRef.current.forEach((marker) => marker.remove())
+      markersRef.current = []
+    }
+  }, [focusLocation, mapReady, selectedId, visibleLocations])
+
+  const flyToPreset = (preset: typeof regionCamera) => {
+    mapRef.current?.flyTo({ ...preset, duration: 1350, curve: 1.2, essential: true })
+  }
 
   const toggleTrajectory = () => {
     const next = !showTrajectory
     setShowTrajectory(next)
-    if (!next && !byId.get(selectedId)?.visibleByDefault) setSelectedId('central-hospital')
+    if (!next && !situation.locations.find((item) => item.id === selectedId)?.visibleByDefault) {
+      setSelectedId('central-hospital')
+    }
   }
 
   return (
@@ -83,80 +258,24 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
             </button>
           </div>
 
-          <div className="city-map-canvas">
-            <svg viewBox={`0 0 ${MAP_SIZE[0]} ${MAP_SIZE[1]}`} role="img" aria-label="基于真实深圳地理边界绘制的事件、响应机构和可选病例移动轨迹。轨迹不表示疾病传播。">
-              <defs>
-                <linearGradient id="city-land" x1="0" y1="0" x2="1" y2="1">
-                  <stop stopColor="#15333b" />
-                  <stop offset="1" stopColor="#0c222a" />
-                </linearGradient>
-                <filter id="city-glow" x="-100%" y="-100%" width="300%" height="300%">
-                  <feGaussianBlur stdDeviation="4" result="blur" />
-                  <feMerge><feMergeNode in="blur" /><feMergeNode in="SourceGraphic" /></feMerge>
-                </filter>
-                <marker id="route-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
-                  <path d="M0 0L10 5L0 10Z" fill="context-stroke" />
-                </marker>
-              </defs>
-              <rect width="1000" height="560" className="city-water" />
-
-              {mapError && <text className="map-message" x="500" y="280">本地深圳地理数据未能载入</text>}
-              {!mapError && !boundary && <text className="map-message" x="500" y="280">正在载入本地地理数据…</text>}
-              {boundary && path && (
-                <>
-                  <path className="shenzhen-outline" d={path(boundary) ?? undefined} />
-                  <g className="district-lines" aria-hidden="true">
-                    {districts?.features.map((district, index) => (
-                      <path key={String(district.properties?.osmRelationId ?? index)} d={path(district) ?? undefined} />
-                    ))}
-                  </g>
-                  <text className="shenzhen-map-label" x="585" y="157">深圳</text>
-
-                  <g className="city-routes" aria-label="病例轨迹与响应连接">
-                    {visibleRoutes.map((route) => {
-                      const from = byId.get(route.from)
-                      const to = byId.get(route.to)
-                      const start = from && projectLocation(from.coordinates)
-                      const end = to && projectLocation(to.coordinates)
-                      if (!start || !end) return null
-                      const midX = (start[0] + end[0]) / 2
-                      const lift = route.kind === 'response' ? 42 : 16
-                      const midY = (start[1] + end[1]) / 2 - lift
-                      return (
-                        <g className={`city-route ${route.kind} ${route.status}`} key={route.id}>
-                          <path d={`M${start[0]} ${start[1]} Q${midX} ${midY} ${end[0]} ${end[1]}`} markerEnd="url(#route-arrow)" />
-                          {route.label && <text x={midX} y={midY - 7}>{route.label}</text>}
-                        </g>
-                      )
-                    })}
-                  </g>
-
-                  <g className="city-locations">
-                    {visibleLocations.map((location) => {
-                      const point = projectLocation(location.coordinates)
-                      if (!point) return null
-                      return (
-                        <CityLocationNode
-                          key={location.id}
-                          location={location}
-                          point={point}
-                          selected={selected.id === location.id}
-                          onSelect={() => setSelectedId(location.id)}
-                        />
-                      )
-                    })}
-                  </g>
-                </>
-              )}
-            </svg>
-
+          <div className="city-map-canvas maplibre-command-map">
+            <div ref={mapContainerRef} className="maplibre-stage" aria-label="可缩放、平移和倾斜的深圳应急指挥地图" />
+            {!mapReady && !mapError && <div className="map-loading">正在载入本地地理场景…</div>}
+            {mapError && <div className="map-loading error">本地地理数据未能载入</div>}
+            <div className="camera-presets" aria-label="地图视角">
+              <button type="button" onClick={() => flyToPreset(regionCamera)}>区域视角</button>
+              <button type="button" onClick={() => flyToPreset(shenzhenCamera)}>深圳视角</button>
+            </div>
+            <div className="map-coordinate-readout">
+              <span>PRD / SHENZHEN</span>
+              <b>22.61°N&nbsp;&nbsp;114.06°E</b>
+            </div>
             <div className="city-map-legend" aria-label="地图图例">
               <span><i className="event-node" />事件节点</span>
               <span><i className="response-node" />响应节点</span>
               <span><i className="trajectory-node" />病例轨迹</span>
             </div>
             <small className="city-map-note">轨迹表示移动历史，不代表有效暴露或感染。演练点位不对应真实地址。</small>
-            <small className="map-attribution">地理数据 © OpenStreetMap contributors · Natural Earth</small>
           </div>
         </section>
 
@@ -166,57 +285,29 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
   )
 }
 
-function CityLocationNode({ location, point, selected, onSelect }: {
-  location: CityLocationView
-  point: [number, number]
-  selected: boolean
-  onSelect: () => void
-}) {
-  const labelOnLeft = point[0] > 720
-  return (
-    <g
-      className={`city-location category-${location.category} status-${location.status} ${selected ? 'selected' : ''}`}
-      transform={`translate(${point[0]} ${point[1]})`}
-      role="button"
-      tabIndex={0}
-      aria-label={`${location.name}，${location.statusLabel}`}
-      onClick={onSelect}
-      onKeyDown={(event) => {
-        if (event.key === 'Enter' || event.key === ' ') {
-          event.preventDefault()
-          onSelect()
-        }
-      }}
-    >
-      <circle className="location-pulse" r={location.category === 'trajectory' ? 17 : 23} />
-      <circle className="location-core" r={location.category === 'trajectory' ? 8 : 12} />
-      <LocationGlyph icon={location.icon} />
-      <g className={`location-label ${labelOnLeft ? 'left' : ''}`} transform={labelOnLeft ? 'translate(-16 -18)' : 'translate(16 -18)'}>
-        <rect x={labelOnLeft ? -132 : 0} width="132" height="40" rx="4" />
-        <text className="location-name" x={labelOnLeft ? -122 : 10} y="16">{location.shortLabel}</text>
-        <text className="location-status" x={labelOnLeft ? -122 : 10} y="31">{location.statusLabel}</text>
-      </g>
-    </g>
-  )
-}
+function createLocationMarker(location: CityLocationView, selected: boolean, onSelect: () => void) {
+  const button = document.createElement('button')
+  button.type = 'button'
+  button.className = `command-map-node category-${location.category} status-${location.status}${selected ? ' selected' : ''}`
+  button.setAttribute('aria-label', `${location.name}，${location.statusLabel}`)
 
-function LocationGlyph({ icon }: { icon: CityLocationIcon }) {
-  if (icon === 'hospital' || icon === 'response') {
-    return <path className="location-glyph" d="M-5-1H-1V-5H3V-1H7V3H3V7H-1V3H-5Z" />
-  }
-  if (icon === 'home') {
-    return <path className="location-glyph" d="M-6 0L1-6L8 0V7H3V2H-1V7H-6Z" />
-  }
-  if (icon === 'airport') {
-    return <path className="location-glyph" d="M-7 2L7-4L2 3L6 6L3 7L-1 4L-5 7L-3 3Z" />
-  }
-  if (icon === 'transport') {
-    return <path className="location-glyph" d="M-7-4H5L8 2V6H5A3 3 0 01-1 6H-4A3 3 0 01-10 6V0Z" />
-  }
-  if (icon === 'laboratory') {
-    return <path className="location-glyph" d="M-3-7H4M-1-7V-1L-6 7H9L3-1V-7" />
-  }
-  return <circle className="location-glyph" r="4" />
+  const pulse = document.createElement('span')
+  pulse.className = 'map-node-pulse'
+  const core = document.createElement('span')
+  core.className = `map-node-core icon-${location.icon}`
+  const label = document.createElement('span')
+  label.className = 'map-node-label'
+  const name = document.createElement('strong')
+  name.textContent = location.shortLabel
+  const status = document.createElement('small')
+  status.textContent = location.statusLabel
+  label.append(name, status)
+  button.append(pulse, core, label)
+  button.addEventListener('click', (event) => {
+    event.stopPropagation()
+    onSelect()
+  })
+  return button
 }
 
 function CityLocationDetail({ location, onEnterScene }: { location: CityLocationView; onEnterScene: () => void }) {
