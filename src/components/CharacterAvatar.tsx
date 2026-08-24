@@ -63,7 +63,7 @@ export function CharacterAvatar({
       <path d="M-9-58 Q-5-67 7-63 Q11-59 8-51 Q4-60-9-56Z" fill={hair} />
       <path d="M7-55 l5 2 -5 2" fill={skin} />
       {role === 'nurse' && <circle cx="7" cy="-63" r="4.5" fill={hair} />}
-      {role !== 'public' && role !== 'family' && (
+      {(role === 'nurse' || role === 'doctor' || role === 'paramedic' || role === 'cdc') && (
         <g className="role-mark" transform="translate(-5 -34)">
           <rect width="10" height="10" rx="2" fill="rgba(7,16,21,.72)" stroke={palette.accent} strokeWidth=".8" />
           {(role === 'nurse' || role === 'doctor' || role === 'paramedic') && <path d="M5 2 V8 M2 5 H8" stroke={palette.accent} strokeWidth="1.5" />}

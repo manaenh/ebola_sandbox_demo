@@ -22,11 +22,8 @@ export default function App() {
         <div className="command-page">
           <div className="command-context">
             <div>
-              <span className="simulation-kicker">模块 1</span>
+              <span className="simulation-kicker">当前场景</span>
               <h1>首诊发现与即时控制</h1>
-            </div>
-            <div className="phase-indicator">
-              <span>M1-1</span><strong>急诊分诊卡</strong>
             </div>
           </div>
           <MetricStrip

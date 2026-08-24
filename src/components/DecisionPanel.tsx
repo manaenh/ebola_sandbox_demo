@@ -18,7 +18,6 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
           <span className="eyebrow"><b>当前事件</b></span>
           <h2 id="decision-title">急诊分诊卡</h2>
         </div>
-        <span className="node-chip">M1-1</span>
       </div>
 
       <div className="event-time">2026.08.05 <strong>10:42</strong></div>

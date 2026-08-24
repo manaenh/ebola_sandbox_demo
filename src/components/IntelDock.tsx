@@ -31,10 +31,10 @@ export function IntelDock({ state }: { state: SimulationState }) {
       </div>
 
       {tab === 'tree' && (
-        <div className="decision-tree" role="tabpanel" aria-label="M1-1 动态决策树">
+        <div className="decision-tree" role="tabpanel" aria-label="急诊分诊动态决策树">
           <div className="tree-root-node">
             <small>当前事件</small>
-            <strong>M1-1 · 急诊分诊卡</strong>
+            <strong>急诊分诊卡</strong>
             <span>我在这里 · 选择响应路径</span>
           </div>
           <div className="tree-main-stem" aria-hidden="true" />
@@ -67,7 +67,7 @@ export function IntelDock({ state }: { state: SimulationState }) {
       )}
 
       {tab === 'timeline' && (
-        <div className="timeline-view" role="tabpanel" aria-label="M1-1 事件时间线">
+        <div className="timeline-view" role="tabpanel" aria-label="急诊分诊事件时间线">
           <div className="timeline-direction"><span>过去</span><i /><span>当前</span><i /><span>后续</span></div>
           <div className="event-timeline">
             <TimelineItem date="07月27日" time="境外" title="发生体液暴露" status="occurred" />
@@ -82,7 +82,7 @@ export function IntelDock({ state }: { state: SimulationState }) {
                 status="current"
               />
             )}
-            <TimelineItem date="08月05日" time="11:12" title="M1-2 · 患者沟通" status="pending" />
+            <TimelineItem date="08月05日" time="11:12" title="患者沟通" status="pending" />
           </div>
         </div>
       )}
@@ -90,7 +90,7 @@ export function IntelDock({ state }: { state: SimulationState }) {
       {tab === 'chain' && (
         <div className="chain-view" role="tabpanel" aria-label="传播与暴露链">
           <div className="transmission-chain">
-            <div className="chain-node infected"><small>已知感染者</small><strong>K-113</strong><span>境外病例</span></div>
+            <div className="chain-node infected"><small>已知感染者</small><strong>境外感染者</strong><span>源暴露病例</span></div>
             <div className="chain-relation effective"><span>07月27日 · 有效暴露</span><i /></div>
             <div className="chain-node suspected"><small>当前调查对象</small><strong>周启航</strong><span>疑似病例</span></div>
             <div className="chain-relation contact"><span>接触调查尚未启动</span><i /></div>

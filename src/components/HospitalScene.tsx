@@ -32,7 +32,7 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
     <section className="scene-panel" aria-labelledby="scene-title">
       <div className="panel-heading scene-heading">
         <div>
-          <span className="eyebrow"><b>数字孪生场景</b><small>DIGITAL TWIN · M1-1</small></span>
+          <span className="eyebrow"><b>数字孪生场景</b><small>DIGITAL TWIN</small></span>
           <h2 id="scene-title">市中心医院 · 急诊分诊区</h2>
         </div>
       </div>
@@ -58,6 +58,7 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
           </defs>
 
           <rect width="1000" height="540" fill="#08151a" />
+          <g className="scene-world" transform="translate(-40 -22) scale(1.08)">
           <path d="M78 148 L568 29 L950 202 L459 511 Z" fill="url(#floor)" stroke="rgba(96,214,225,.27)" strokeWidth="2" />
           <path d="M78 148 L568 29 L568 100 L78 219Z" fill="url(#wall)" stroke="rgba(121,206,218,.2)" />
           <path d="M568 29 L950 202 L950 273 L568 100Z" fill="#18313a" stroke="rgba(121,206,218,.2)" />
@@ -92,11 +93,22 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
             <path d="M668 103 L772 151 L772 257 L668 207Z" fill="#17343d" stroke="#59e1ec" strokeOpacity=".3" />
             <path d="M710 137 L757 159 L757 238 L710 216Z" fill="#091e25" stroke="#64e6c3" strokeOpacity=".82" />
             <path d="M719 152 L748 165 L748 210 L719 197Z" fill="#59e1ec" opacity=".13" />
-            <text x="805" y="146" className="room-code">ISO-01</text>
           </g>
           <g className="zone-sign isolation-sign" transform="translate(827 77)">
             <rect width="105" height="39" rx="4" />
             <text x="10" y="17">隔离室</text><text className="zone-english" x="10" y="31">ISOLATION</text>
+          </g>
+
+          <g
+            className={`hotspot character-hotspot nurse-hotspot ${activeHotspot === 'triage-nurse' ? 'active' : ''}`}
+            role="button"
+            tabIndex={0}
+            aria-label="查看分诊护士信息"
+            onClick={() => onHotspot('triage-nurse')}
+            onKeyDown={(event) => trigger(event, 'triage-nurse')}
+          >
+            <CharacterAvatar role="nurse" x={535} y={268} scale={.95} facing="right" />
+            <ellipse className="character-focus" cx="535" cy="268" rx="27" ry="14" />
           </g>
 
           <g
@@ -113,18 +125,6 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
             <path d="M491 277 L538 265 L565 277 L517 289Z" fill="#09191e" stroke="#59e1ec" strokeOpacity=".55" />
             <path d="M543 321 L619 302" stroke="rgba(89,225,236,.22)" />
             <circle className="hotspot-ring" cx="548" cy="310" r="55" />
-          </g>
-
-          <g
-            className={`hotspot character-hotspot nurse-hotspot ${activeHotspot === 'triage-nurse' ? 'active' : ''}`}
-            role="button"
-            tabIndex={0}
-            aria-label="查看分诊护士信息"
-            onClick={() => onHotspot('triage-nurse')}
-            onKeyDown={(event) => trigger(event, 'triage-nurse')}
-          >
-            <CharacterAvatar role="nurse" x={507} y={277} scale={.9} facing="right" />
-            <ellipse className="character-focus" cx="507" cy="281" rx="27" ry="14" />
           </g>
           <g
             className={`hotspot waiting-hotspot ${activeHotspot === 'waiting-area' ? 'active' : ''}`}
@@ -168,14 +168,13 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
           >
             <ellipse className="patient-scan" cx="0" cy="7" rx="39" ry="20" />
             <CharacterAvatar role="patient" scale={1.22} facing="left" unwell />
-            <path d="M17-41 q22 5 21 32 l-15 1 q2-23-15-26Z" fill="#916a45" stroke="#d09a5b" strokeWidth="1" />
             <ellipse className="character-focus" cx="0" cy="5" rx="34" ry="18" />
           </g>
 
           <g className="patient-marker">
             <path d="M16-61 L42-76 H119" />
-            <rect x="40" y="-91" width="91" height="25" rx="12" />
-            <text x="52" y="-75">周启航</text>
+            <rect x="40" y="-91" width="139" height="25" rx="12" />
+            <text x="52" y="-75">周启航 · 疑似病例</text>
           </g>
 
           <g
@@ -189,13 +188,13 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
             <path className="route-corridor" d="M591 352 C661 319 684 261 746 219" />
             <path className="route-line" d="M591 352 C661 319 684 261 746 219" />
             <path className="route-arrow" d="M735 219 L753 215 L745 232Z" />
-            <text className="route-label" x="661" y="286">隔离转移动线</text>
             <circle className="hotspot-ring" cx="692" cy="273" r="45" />
           </g>
 
           <g className="scene-scale" transform="translate(90 493)">
             <path d="M0 0 H104 M0-5 V5 M52-5 V5 M104-5 V5" />
             <text x="0" y="18">0</text><text x="44" y="18">5m</text><text x="94" y="18">10m</text>
+          </g>
           </g>
         </svg>
 

@@ -81,7 +81,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .eyebrow { display: inline-flex; align-items: baseline; gap: 8px; color: var(--cyan); }
 .eyebrow b { font-size: 10px; font-weight: 600; letter-spacing: .06em; }
 .eyebrow small { color: #56757d; font: 600 7px/1 "Bahnschrift", sans-serif; letter-spacing: .14em; }
-.command-context h1 { font-size: 18px; font-weight: 500; margin: 4px 0 0; letter-spacing: .03em; }
+.command-context h1 { font-size: 20px; font-weight: 500; margin: 4px 0 0; letter-spacing: .03em; }
 .phase-indicator { display: grid; grid-template-columns: auto auto; column-gap: 11px; align-items: baseline; text-align: right; }
 .phase-indicator span { color: var(--amber); font: 700 10px/1 "Bahnschrift", sans-serif; letter-spacing: .12em; }
 .phase-indicator strong { font-size: 13px; font-weight: 500; }
@@ -93,10 +93,10 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .metric-card::after { content: ''; position: absolute; top: 0; left: 18px; width: 36px; height: 1px; background: var(--cyan); opacity: .45; }
 .metric-card.pending::after { background: linear-gradient(90deg, #57717a, transparent); }
 .metric-heading { display: flex; justify-content: space-between; align-items: baseline; gap: 6px; }
-.metric-heading span { color: #bad0d5; font-size: 11px; }
+.metric-heading span { color: #bad0d5; font-size: 12px; }
 .metric-heading small { color: #536e76; font: 600 7px/1 "Bahnschrift", sans-serif; letter-spacing: .1em; }
 .metric-value { display: flex; align-items: baseline; gap: 7px; margin-top: 5px; }
-.metric-value strong { font: 500 24px/1 "Bahnschrift", sans-serif; letter-spacing: .01em; }
+.metric-value strong { font: 500 27px/1 "Bahnschrift", sans-serif; letter-spacing: .01em; }
 .metric-value span { font-size: 9px; color: var(--muted); }
 .metric-card.pending .metric-value strong { color: #708890; }
 .metric-foot { margin-top: 5px; color: #587078; font-size: 7px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -109,7 +109,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .scene-panel, .decision-panel, .intel-dock, .brief-card { border: 1px solid var(--line); border-radius: 12px; background: rgba(11,23,29,.78); box-shadow: 0 18px 45px rgba(0,0,0,.16), inset 0 1px 0 rgba(255,255,255,.025); }
 .scene-panel { min-width: 0; overflow: hidden; }
 .panel-heading { min-height: 50px; display: flex; justify-content: space-between; align-items: center; padding: 8px 15px; border-bottom: 1px solid rgba(137,205,218,.11); }
-.panel-heading h2 { margin: 5px 0 0; font-size: 15px; font-weight: 500; }
+.panel-heading h2 { margin: 5px 0 0; font-size: 17px; font-weight: 500; }
 .scene-canvas { position: relative; height: clamp(420px, 44vh, 510px); overflow: hidden; background: #08151a; }
 .scene-canvas::before { content: ''; z-index: 2; pointer-events: none; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(89,225,236,.025) 0 1px, transparent 1px 4px); background-size: 100% 4px; mix-blend-mode: screen; opacity: .3; }
 .scene-canvas svg { width: 100%; height: 100%; display: block; }
@@ -119,9 +119,8 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .triage-zone-floor { fill: rgba(89,225,236,.025); stroke: rgba(89,225,236,.18); }
 .isolation-zone-floor { fill: rgba(100,230,195,.035); stroke: rgba(100,230,195,.2); }
 .zone-sign rect { fill: rgba(7,16,21,.86); stroke: rgba(137,205,218,.25); }
-.zone-sign text { fill: #d2e3e6; font: 600 11px "Microsoft YaHei", sans-serif; }
+.zone-sign text { fill: #d2e3e6; font: 600 12px "Microsoft YaHei", sans-serif; }
 .zone-sign .zone-english, .exposure-label .zone-english { fill: #54737b; font: 600 7px "Bahnschrift", sans-serif; letter-spacing: .12em; }
-.room-code { fill: #6d9aa2; font: 600 9px "Bahnschrift", sans-serif; letter-spacing: .1em; }
 
 .hotspot { cursor: pointer; outline: none; }
 .hotspot-ring { fill: none; stroke: var(--cyan); stroke-width: 1; stroke-dasharray: 5 7; opacity: 0; transform-box: fill-box; transform-origin: center; transition: opacity .2s ease; }
@@ -134,15 +133,14 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .character-focus { fill: none; stroke: var(--cyan); stroke-width: 1.5; stroke-dasharray: 4 5; opacity: 0; transition: opacity .2s ease; }
 .character-hotspot:hover .character-focus, .character-hotspot:focus-visible .character-focus, .character-hotspot.active .character-focus { opacity: .9; }
 .patient-hotspot { transform: translate(600px, 370px); transition: transform .85s cubic-bezier(.4,0,.2,1); }
-.patient-scan { fill: rgba(255,180,91,.09); stroke: var(--amber); stroke-width: 1; stroke-dasharray: 4 4; animation: patientPulse 2.4s ease-in-out infinite; }
+.patient-scan { fill: rgba(255,180,91,.045); stroke: rgba(255,180,91,.78); stroke-width: 1; stroke-dasharray: 4 5; animation: patientPulse 2.8s ease-in-out infinite; }
 .patient-marker { pointer-events: none; transform: translate(600px, 370px); transition: transform .85s cubic-bezier(.4,0,.2,1); }
 .patient-marker path { fill: none; stroke: rgba(255,180,91,.46); stroke-width: 1; }
 .patient-marker rect { fill: rgba(7,16,21,.78); stroke: rgba(255,180,91,.36); }
-.patient-marker text { fill: #f7d5ad; font: 600 10px "Microsoft YaHei", sans-serif; }
+.patient-marker text { fill: #f7d5ad; font: 600 10.5px "Microsoft YaHei", sans-serif; }
 .route-corridor { fill: none; stroke: rgba(89,225,236,.07); stroke-width: 27; stroke-linecap: round; }
 .route-line { fill: none; stroke: rgba(89,225,236,.6); stroke-width: 2; stroke-dasharray: 7 8; opacity: .4; }
 .route-arrow { fill: var(--cyan); opacity: .5; }
-.route-label { fill: #5d858e; font: 600 9px "Microsoft YaHei", sans-serif; }
 .phase-isolated .route-line { opacity: .95; stroke: var(--teal); animation: routeFlow 1.2s linear infinite; }
 .phase-isolated .route-arrow { fill: var(--teal); opacity: 1; filter: url(#glow); }
 .phase-isolated .patient-scan { stroke: var(--teal); fill: rgba(100,230,195,.08); }
@@ -186,7 +184,7 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .decision-options button:hover { border-color: rgba(89,225,236,.58); background: rgba(24,56,65,.72); transform: translateY(-1px); box-shadow: 0 8px 22px rgba(0,0,0,.16); }
 .option-code { width: 42px; flex: 0 0 42px; display: grid; place-items: center; border-right: 1px solid var(--line); color: var(--cyan); font: 500 21px/1 "Bahnschrift", sans-serif; background: rgba(89,225,236,.035); }
 .option-copy { padding: 11px 12px; display: block; }
-.option-copy strong { display: block; font-size: 12px; font-weight: 600; }
+.option-copy strong { display: block; font-size: 13px; font-weight: 600; }
 .option-copy > span { display: block; color: var(--muted); font-size: 10px; line-height: 1.55; margin-top: 5px; }
 
 .outcome-card { margin: 0 12px 12px; padding: 13px; border-radius: 7px; border: 1px solid rgba(100,230,195,.3); background: linear-gradient(145deg, rgba(100,230,195,.08), rgba(11,23,29,.3)); }

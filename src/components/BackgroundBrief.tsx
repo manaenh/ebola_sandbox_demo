@@ -7,7 +7,7 @@ export function BackgroundBrief() {
           <h1>2026 Bundibugyo 毒株<br />疫情背景</h1>
           <p>该页面与深圳虚构桌面推演完全分离。数据被冻结在演示资料的来源截止日，不随网络自动更新。</p>
         </div>
-        <div className="briefing-date"><small>DATA AS OF</small><strong>2026.07.30</strong><span>WHO DON 614</span></div>
+        <div className="briefing-date"><small>数据截至</small><strong>2026.07.30</strong><span>WHO DON 614</span></div>
       </header>
       <section className="world-stat-grid">
         <article><small>确诊病例</small><strong>3,605</strong><span>CONFIRMED CASES</span></article>
@@ -22,7 +22,7 @@ export function BackgroundBrief() {
         </article>
         <article className="brief-card">
           <span className="eyebrow"><b>临床识别</b><small>CLINICAL SIGNAL</small></span><h2>胃肠道症状可能主导</h2>
-          <p>用户提供背景材料强调 Bundibugyo 病毒病可表现为发热、呕吐、腹泻和脱水，明显出血并非识别的必要前提。这正是 M1-1 的早期识别难点。</p>
+          <p>用户提供背景材料强调 Bundibugyo 病毒病可表现为发热、呕吐、腹泻和脱水，明显出血并非识别的必要前提。这也是首诊阶段的早期识别难点。</p>
         </article>
         <article className="brief-card source-card">
           <span className="eyebrow"><b>资料来源</b><small>SOURCE</small></span><h2>来源与产品口径</h2>
