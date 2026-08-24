@@ -17,7 +17,7 @@ export default function App() {
   const reset = () => dispatch({ type: 'RESET_MODULE' })
   const currentEvent = getEventDefinition(state.currentEventId)
   const visibleMetrics: MetricKey[] = [...currentEvent.visibleMetrics]
-  if (state.currentEventId === 'M1-2' && state.persistent.earlyPublicOpinionRisk) {
+  if (state.currentEventId === 'M1-2' && state.module1.earlyPublicOpinionRisk) {
     visibleMetrics.push('publicOpinionRisk')
   }
 

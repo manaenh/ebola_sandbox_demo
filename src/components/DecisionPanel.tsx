@@ -1,4 +1,5 @@
 import { getEventDefinition } from '../simulation/sourceData'
+import { getCurrentEventDescription, getModule1CompletionSummary } from '../simulation/selectors'
 import type { DecisionId, SimulationState } from '../simulation/types'
 
 type DecisionPanelProps = {
@@ -31,7 +32,7 @@ export function DecisionPanel({ state, onResolve, onAdvance, onReset }: Decision
 
       <div className="event-time">{event.date} <strong>{event.time}</strong></div>
       <div className="event-organizations">{event.organizations.join(' · ')}</div>
-      <p className="event-brief">{event.description}</p>
+      <p className="event-brief">{getCurrentEventDescription(state)}</p>
 
       {state.phase === 'deciding' ? (
         <>
@@ -73,27 +74,19 @@ export function DecisionPanel({ state, onResolve, onAdvance, onReset }: Decision
 }
 
 function ModuleComplete({ state, onReset }: { state: SimulationState; onReset: () => void }) {
-  const assessment = state.persistent.assessmentRequired === null
-    ? '待核定'
-    : `${state.persistent.assessmentRequired} 人`
-  const response = state.persistent.cdcResponseStarted
-    ? '疾控响应已启动'
-    : `响应延迟 +${Math.floor(state.persistent.responseDelayMinutes / 60)}h${state.persistent.responseDelayMinutes % 60}m`
+  const summary = getModule1CompletionSummary(state)
 
   return (
     <aside className="decision-panel module-complete" aria-labelledby="module-complete-title">
       <div className="completion-mark" aria-hidden="true">✓</div>
       <span className="eyebrow"><b>阶段完成</b></span>
       <h2 id="module-complete-title">首诊发现与即时控制完成</h2>
-      <p>三项决策已写入当前推演路径，关键状态将带入后续模块。</p>
+      <p>{summary.situation}</p>
       <div className="completion-summary">
-        <div><small>隔离时刻</small><strong>{state.persistent.isolationTime ?? '待核定'}</strong></div>
-        <div><small>需评估人员</small><strong>{assessment}</strong></div>
-        <div><small>报告与响应</small><strong>{response}</strong></div>
+        {summary.facts.map((fact) => (
+          <div key={fact.label}><small>{fact.label}</small><strong>{fact.value}</strong></div>
+        ))}
       </div>
-      {state.persistent.earlyPublicOpinionRisk && (
-        <div className="completion-risk">患者短视频已使舆情风险提前出现</div>
-      )}
       <button className="next-module-button" type="button" disabled>进入转运与实验室处置</button>
       <small className="next-module-note">下一模块将在后续阶段实现</small>
       <button className="reset-button" type="button" onClick={onReset}>重新推演本模块</button>

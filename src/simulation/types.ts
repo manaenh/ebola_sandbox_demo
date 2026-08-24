@@ -60,18 +60,44 @@ export type EventLogEntry = {
   tone: 'neutral' | 'active' | 'alert' | 'complete'
 }
 
-export type PersistentState = {
-  waitingAreaMinutes: number | null
-  isolationTime: string | null
+export type Module1State = {
+  isolationScheduledFor: string | null
+  isolationCompletedAt: string | null
+  exposureDurationMinutes: number | null
   vomitingExposureOccurred: boolean
-  assessmentRequired: number | null
+  additionalAssessmentRequired: number
+
   patientCooperative: boolean | null
-  samplingReady: boolean
   communicationDelayMinutes: number | null
+  samplingReadiness: 'pending' | 'improved' | 'blocked'
   earlyPublicOpinionRisk: boolean
+
   cdcResponseStarted: boolean
   reportWithin15Minutes: boolean | null
   responseDelayMinutes: number
+  cdcArrival: 'before-12:00' | null
+
+  tracingWorkload: 'pending' | 'contained' | 'expanded' | 'delayed-start' | 'expanded-delayed'
+  exposureControlQuality: 'pending' | 'good' | 'compromised'
+  cooperationQuality: 'pending' | 'stable' | 'strained'
+  contactInformationQuality: 'pending' | 'improved' | 'limited'
+  responseSpeed: 'pending' | 'timely' | 'delayed'
+  downstreamResponsePressure: 'pending' | 'controlled' | 'elevated' | 'high'
+}
+
+export type ScheduledConsequenceEffects = {
+  metricChanges?: Partial<Record<MetricKey, MetricValue>>
+  module1Changes?: Partial<Module1State>
+  sceneChanges?: Partial<SceneState>
+  eventLog?: EventLogEntry[]
+}
+
+export type ScheduledConsequence = {
+  id: string
+  type: 'patient-isolated' | 'vomiting-exposure' | 'response-delay-elapsed'
+  sourceEventId: EventId
+  executeAt: string
+  effects: ScheduledConsequenceEffects
 }
 
 export type DecisionOutcome = {
@@ -81,10 +107,10 @@ export type DecisionOutcome = {
 }
 
 export type DecisionEffects = {
-  simulationTime?: string
   metricChanges?: Partial<Record<MetricKey, MetricValue>>
-  persistentChanges: Partial<PersistentState>
+  module1Changes: Partial<Module1State>
   sceneChanges: Partial<SceneState>
+  scheduledConsequences?: ScheduledConsequence[]
   eventLog: EventLogEntry[]
   outcome: DecisionOutcome
   situationSummary: string
@@ -122,7 +148,8 @@ export type SimulationState = {
   activeHotspot: HotspotId | null
   metrics: Record<MetricKey, MetricValue>
   scene: SceneState
-  persistent: PersistentState
+  module1: Module1State
+  scheduledConsequences: ScheduledConsequence[]
   decisions: Partial<Record<EventId, DecisionId>>
   completedEventIds: EventId[]
   situationSummary: string
@@ -134,4 +161,5 @@ export type SimulationAction =
   | { type: 'CLEAR_HOTSPOT' }
   | { type: 'RESOLVE_DECISION'; decision: DecisionId }
   | { type: 'ADVANCE_EVENT' }
+  | { type: 'ADVANCE_TIME'; simulationTime: string }
   | { type: 'RESET_MODULE' }

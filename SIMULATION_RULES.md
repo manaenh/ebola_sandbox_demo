@@ -156,7 +156,7 @@ type SimulationState = {
 
 `simulationEvents` 是不可变事件目录。每个事件定义内部 ID、用户标题、注入时间、描述、人物、责任机构、可用决策、指标与持久状态变化、场景变化、即时后果、日志、确定性态势摘要和下一事件。内部 ID 只用于数据映射，不在主界面展示。
 
-reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 统一应用所选分支的 effects；`ADVANCE_EVENT` 按定义推进到下一注入；`RESET_MODULE` 创建全新 run。事件注入时间与分支后果时间分开保存，因为源脚本中的三个事件存在时间重叠，不得为了线性播放改写原始时间。
+reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 只应用即时 effects 并登记 `scheduledConsequences`；`ADVANCE_EVENT` 先把时钟推进到下一事件注入时刻，再执行所有到期后果；`ADVANCE_TIME` 用于确定性测试和后续回放；`RESET_MODULE` 创建全新 run。事件注入时间与后果执行时间严格分开，不得为了线性播放提前改变患者物理位置或指标。
 
 跨事件持久状态至少包括：公共候诊区停留时长、隔离时刻、呕吐暴露是否发生、需评估人数、患者是否配合、采样是否可继续、沟通耗时、舆情风险是否提前、疾控响应是否启动、是否在 15 分钟内报告，以及累计响应延迟。
 
@@ -164,18 +164,18 @@ reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 统一应用所选�
 
 初始：`10:42 / deciding / suspectedCases=1 / waitingAreaPeople=18 / assessmentRequired=null`。
 
-选择 A 后：
+选择 A 后登记 11:05 隔离后果；推进到 11:12 时已经执行：
 
-- `simulationTime=11:05`
+- `isolationCompletedAt=11:05`
 - `exposureDuration=23 min`
 - `assessmentRequired` 保持未核定，后续全程规范路径汇总才可显示院内 24 人。
 - cue：患者沿隔离通道移动、隔离门开启、候诊区无污染警戒。
 
-选择 B 后：
+选择 B 后登记 11:36 呕吐暴露和 12:00 隔离两个后果；在 11:12 与 11:20 均不得提前执行：
 
-- `simulationTime=12:00`
+- `isolationCompletedAt=12:00`
 - `exposureDuration=78 min`
-- `assessmentRequired=21`，语义为“本事件新增需评估人员”。
+- 11:36 后 `additionalAssessmentRequired=21`，语义为“本事件新增需评估人员”，不是感染、疑似或高风险接触者。
 - cue：候诊区呕吐事件、污染半径、保洁/候诊者停留、隔离延后。
 
 ### 7.3 M1-2 患者拒绝
@@ -192,6 +192,14 @@ reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 统一应用所选�
 - 先行快报路径：记录 15 分钟内报告、疾控响应启动、12:00 前到场。
 - 等待检验路径：记录 `responseDelayMinutes=130`，显示 `+2h10m`；该字段必须带入后续接触追踪等事件。
 - 结果确认后进入 `module-complete`，不得自动启动 Module 2。
+
+### 7.5 八条组合与派生状态
+
+三个二选一决策形成 AAA 至 BBB 共 8 条组合。差异来自持久事实本身，而不是任意总分：隔离时刻/暴露时长、患者配合/采样准备/舆情信号、疾控启动/响应延迟分别保留。
+
+`Module1State` 同时提供不带虚构数值的确定性派生字段：`exposureControlQuality`、`cooperationQuality`、`contactInformationQuality`、`responseSpeed`、`tracingWorkload` 与 `downstreamResponsePressure`。例如延迟分诊加延迟报告派生为 `expanded-delayed / high`；延迟分诊后沟通成功保留为暴露控制受损但信息质量改善的恢复路径。
+
+这些字段是后续模块的输入接口，不在 Module 1 计算二代感染，也不把“需评估人员”自动分类成任何风险接触者。
 
 ## 8. 不变量
 

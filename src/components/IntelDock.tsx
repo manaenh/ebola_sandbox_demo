@@ -75,6 +75,12 @@ function ProgressiveDecisionTree({ state }: { state: SimulationState }) {
                   )
                 })}
               </div>
+              {selectedId && (
+                <div className="stage-rejoin" aria-label="两条处置路径汇入下一共同事件">
+                  <i aria-hidden="true" />
+                  <span>进入下一共同事件</span>
+                </div>
+              )}
             </section>
             {index < revealedEvents.length - 1 && <div className="tree-stage-connector" aria-hidden="true"><i /></div>}
           </div>
