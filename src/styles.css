@@ -155,8 +155,6 @@ button:focus-visible, a:focus-visible, [role="button"]:focus-visible { outline: 
 .exposure-label text { fill: #ffc0bd; font: 600 8px "Microsoft YaHei", sans-serif; }
 .phase-exposure-event .waiting-hotspot { filter: saturate(.72); }
 
-.scene-scale path { stroke: #4d6b73; fill: none; }
-.scene-scale text { fill: #4d6b73; font: 8px "Bahnschrift", sans-serif; }
 .hotspot-card { position: absolute; z-index: 4; width: 245px; padding: 11px 30px 11px 12px; border: 1px solid rgba(89,225,236,.2); border-left: 2px solid var(--cyan); border-radius: 5px; background: rgba(7,16,21,.92); box-shadow: 0 10px 28px rgba(0,0,0,.26); }
 .hotspot-card.card-zhou-qihang { left: 59%; top: 48%; }
 .hotspot-card.card-triage-nurse { left: 53%; top: 25%; }

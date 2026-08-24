@@ -191,10 +191,6 @@ export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot 
             <circle className="hotspot-ring" cx="692" cy="273" r="45" />
           </g>
 
-          <g className="scene-scale" transform="translate(90 493)">
-            <path d="M0 0 H104 M0-5 V5 M52-5 V5 M104-5 V5" />
-            <text x="0" y="18">0</text><text x="44" y="18">5m</text><text x="94" y="18">10m</text>
-          </g>
           </g>
         </svg>
 
