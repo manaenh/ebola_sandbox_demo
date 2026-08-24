@@ -3,10 +3,10 @@ import type { SimulationState } from '../simulation/types'
 
 type DockTab = 'tree' | 'timeline' | 'chain'
 
-const tabLabels: { id: DockTab; label: string; english: string }[] = [
-  { id: 'tree', label: '动态决策树', english: 'DECISION TREE' },
-  { id: 'timeline', label: '事件时间线', english: 'TIMELINE' },
-  { id: 'chain', label: '传播与暴露链', english: 'EXPOSURE CHAIN' },
+const tabLabels: { id: DockTab; label: string }[] = [
+  { id: 'tree', label: '决策树' },
+  { id: 'timeline', label: '时间线' },
+  { id: 'chain', label: '传播链' },
 ]
 
 export function IntelDock({ state }: { state: SimulationState }) {
@@ -25,7 +25,7 @@ export function IntelDock({ state }: { state: SimulationState }) {
             className={tab === item.id ? 'active' : ''}
             onClick={() => setTab(item.id)}
           >
-            {item.label}<small>{item.english}</small>
+            {item.label}
           </button>
         ))}
       </div>
@@ -35,7 +35,7 @@ export function IntelDock({ state }: { state: SimulationState }) {
           <div className="tree-root-node">
             <small>当前事件</small>
             <strong>M1-1 · 急诊分诊卡</strong>
-            <span>10:42 · 选择响应路径</span>
+            <span>我在这里 · 选择响应路径</span>
           </div>
           <div className="tree-main-stem" aria-hidden="true" />
           <div className="tree-paths">
@@ -63,7 +63,6 @@ export function IntelDock({ state }: { state: SimulationState }) {
               </div>
             </section>
           </div>
-          <div className="tree-replay-note">完成当前事件后，可在复盘模式回放另一条路径</div>
         </div>
       )}
 

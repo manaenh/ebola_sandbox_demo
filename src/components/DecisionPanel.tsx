@@ -15,7 +15,7 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
     <aside className="decision-panel" aria-labelledby="decision-title">
       <div className="panel-heading">
         <div>
-          <span className="eyebrow"><b>当前事件</b><small>EVENT 01</small></span>
+          <span className="eyebrow"><b>当前事件</b></span>
           <h2 id="decision-title">急诊分诊卡</h2>
         </div>
         <span className="node-chip">M1-1</span>
@@ -28,15 +28,8 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
 
       {state.phase === 'deciding' ? (
         <>
-          <div className="signal-block">
-            <span>需关注的信号</span>
-            <div><i />症状组合与旅行史粒度不足</div>
-            <div><i />公共候诊区存在潜在暴露面</div>
-          </div>
           <div className="decision-prompt">
-            <span>响应决策 <small>RESPONSE DECISION</small></span>
-            <strong>选择下一步工作路径</strong>
-            <p>两个方案均具有操作合理性，后果将在提交后揭示。</p>
+            <strong>选择响应方式</strong>
           </div>
           <div className="decision-options">
             {m11Options.map((option) => (
@@ -45,7 +38,6 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
                 <span className="option-copy">
                   <strong>{option.title}</strong>
                   <span>{option.description}</span>
-                  <small>{option.owner} <b>→</b></small>
                 </span>
               </button>
             ))}
@@ -72,18 +64,14 @@ export function DecisionPanel({ state, onResolve, onReset }: DecisionPanelProps)
       )}
 
       <div className="assistant-summary">
-        <div className="assistant-title">
-          <span className="assistant-glyph">态势</span>
-          <div><strong>态势助手</strong><small>本地规则摘要</small></div>
-        </div>
+        <strong>态势研判</strong>
         <p>
           {state.phase === 'deciding'
-            ? '当前关键不确定性是具体旅行地与体液接触史。建议在四句话报告中明确判断、动作、责任人和反馈时限。'
+            ? '当前存在境外旅居史与体液接触史，建议立即完成风险识别。'
             : rapid
-              ? '患者已于 11:05 隔离，公共区域停留 23 分钟。下一步应保存人员、时间、地点及操作记录。'
-              : '患者已于 12:00 隔离。候诊区污染处置与 21 名相关人员的逐一暴露评估成为当前优先事项。'}
+              ? '患者已于 11:05 隔离，下一步应完成暴露评估与记录。'
+              : '候诊区发生体液污染，21 人需进入暴露评估流程。'}
         </p>
-        <span className="assistant-source">基于本地状态规则生成 · 无网络调用</span>
       </div>
     </aside>
   )

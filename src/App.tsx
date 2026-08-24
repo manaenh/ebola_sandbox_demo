@@ -15,31 +15,30 @@ export default function App() {
   const reset = () => dispatch({ type: 'RESET_NODE' })
 
   return (
-    <AppShell
-      view={view}
-      onViewChange={setView}
-      simulationTime={state.simulationTime}
-      onReset={reset}
-    >
+    <AppShell view={view} onViewChange={setView}>
       {view === 'briefing' && <BackgroundBrief />}
       {view === 'review' && <ReviewPlaceholder />}
       {view === 'command' && (
         <div className="command-page">
           <div className="command-context">
             <div>
-              <span className="simulation-kicker">模拟场景 · 深圳市输入性疫情情景推演</span>
-              <h1>埃博拉输入性疫情联合响应</h1>
+              <span className="simulation-kicker">模块 1</span>
+              <h1>首诊发现与即时控制</h1>
             </div>
             <div className="phase-indicator">
-              <span>PHASE 01</span><strong>首诊发现与即时控制</strong><small>1 / 7 MODULES</small>
+              <span>M1-1</span><strong>急诊分诊卡</strong>
             </div>
           </div>
-          <MetricStrip metrics={state.metrics} />
+          <MetricStrip
+            metrics={state.metrics}
+            visibleKeys={['confirmedCases', 'suspectedCases', 'assessmentRequired', 'exposureDuration']}
+          />
           <div className="workspace-grid">
             <HospitalScene
               phase={state.scenePhase}
               activeHotspot={state.activeHotspot}
               onHotspot={(hotspot) => dispatch({ type: 'SELECT_HOTSPOT', hotspot })}
+              onClearHotspot={() => dispatch({ type: 'CLEAR_HOTSPOT' })}
             />
             <DecisionPanel
               state={state}

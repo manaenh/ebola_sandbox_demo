@@ -7,8 +7,7 @@ export const m11Options: DecisionOption[] = [
     id: 'rapid-epidemiology',
     code: 'A',
     title: '立即升级流行病学问诊',
-    description:
-      '由分诊护士补问具体国家、日期与体液接触史；同步佩戴口罩、限制陪同流动，并开启隔离通道。',
+    description: '追问具体旅行与体液暴露史，并先行采取隔离措施。',
     owner: '急诊分诊 · 院感联动',
     feedback: '11:05 隔离，公共候诊区停留 23 分钟。',
   },
@@ -16,8 +15,7 @@ export const m11Options: DecisionOption[] = [
     id: 'staged-assessment',
     code: 'B',
     title: '先完成急诊基础评估',
-    description:
-      '先在分诊区完成生命体征和基础检查，同时补充旅行史并协调可用隔离空间。',
+    description: '根据首轮检查结果，再决定是否升级隔离措施。',
     owner: '急诊分诊 · 临床评估',
     feedback: '12:00 隔离；候诊期间发生一次呕吐，新增需评估人员 21 人。',
   },

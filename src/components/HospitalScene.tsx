@@ -7,6 +7,7 @@ type HospitalSceneProps = {
   phase: ScenePhase
   activeHotspot: HotspotId | null
   onHotspot: (id: HotspotId) => void
+  onClearHotspot: () => void
 }
 
 const waitingPeople = [
@@ -17,7 +18,7 @@ const waitingPeople = [
   [448, 348, 1], [477, 370, 2],
 ] as const
 
-export function HospitalScene({ phase, activeHotspot, onHotspot }: HospitalSceneProps) {
+export function HospitalScene({ phase, activeHotspot, onHotspot, onClearHotspot }: HospitalSceneProps) {
   const trigger = (event: KeyboardEvent<SVGGElement>, id: HotspotId) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -33,11 +34,6 @@ export function HospitalScene({ phase, activeHotspot, onHotspot }: HospitalScene
         <div>
           <span className="eyebrow"><b>数字孪生场景</b><small>DIGITAL TWIN · M1-1</small></span>
           <h2 id="scene-title">市中心医院 · 急诊分诊区</h2>
-        </div>
-        <div className="scene-legend" aria-label="场景图例">
-          <span><i className="legend-dot patient" />重点人物</span>
-          <span><i className="legend-dot control" />控制节点</span>
-          <span><i className="legend-dot public" />公共区域</span>
         </div>
       </div>
 
@@ -130,13 +126,6 @@ export function HospitalScene({ phase, activeHotspot, onHotspot }: HospitalScene
             <CharacterAvatar role="nurse" x={507} y={277} scale={.9} facing="right" />
             <ellipse className="character-focus" cx="507" cy="281" rx="27" ry="14" />
           </g>
-          <g className={`identity-tag nurse-identity ${activeHotspot === 'triage-nurse' ? 'active' : ''}`}>
-            <path d="M520 235 L553 214 H655" />
-            <rect x="550" y="193" width="137" height="43" rx="5" />
-            <text x="563" y="211">分诊护士</text>
-            <text x="563" y="226" className="tag-secondary">急诊分诊 · 医务人员</text>
-          </g>
-
           <g
             className={`hotspot waiting-hotspot ${activeHotspot === 'waiting-area' ? 'active' : ''}`}
             role="button"
@@ -183,11 +172,10 @@ export function HospitalScene({ phase, activeHotspot, onHotspot }: HospitalScene
             <ellipse className="character-focus" cx="0" cy="5" rx="34" ry="18" />
           </g>
 
-          <g className={`identity-tag patient-tag ${activeHotspot === 'zhou-qihang' ? 'active' : ''}`}>
-            <path d="M20-78 L61-103 H199" />
-            <rect x="58" y="-127" width="184" height="55" rx="5" />
-            <text x="72" y="-106">周启航 · 疑似病例</text>
-            <text x="72" y="-89" className="tag-secondary">39.1°C · 腹泻 · 呕吐</text>
+          <g className="patient-marker">
+            <path d="M16-61 L42-76 H119" />
+            <rect x="40" y="-91" width="91" height="25" rx="12" />
+            <text x="52" y="-75">周启航</text>
           </g>
 
           <g
@@ -211,14 +199,9 @@ export function HospitalScene({ phase, activeHotspot, onHotspot }: HospitalScene
           </g>
         </svg>
 
-        <div className="scene-hud top-left">
-          <strong>急诊区域</strong>
-          <span>EMERGENCY</span>
-          <em>{phase === 'observing' ? '事件观察中' : phase === 'isolated' ? '隔离通道已启用' : '暴露事件处置中'}</em>
-        </div>
-
         {activeHotspot && (
           <aside className={`hotspot-card card-${activeHotspot}`} aria-live="polite">
+            <button type="button" className="hotspot-close" onClick={onClearHotspot} aria-label="关闭场景信息">×</button>
             <small>{hotspotCopy[activeHotspot].eyebrow}</small>
             <strong>{hotspotCopy[activeHotspot].title}</strong>
             <p>{hotspotCopy[activeHotspot].body}</p>

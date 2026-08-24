@@ -19,15 +19,22 @@ const suffix: Record<MetricValue['unit'], string> = {
 
 type MetricStripProps = {
   metrics: Record<MetricKey, MetricValue>
+  visibleKeys: MetricKey[]
 }
 
-export function MetricStrip({ metrics }: MetricStripProps) {
+export function MetricStrip({ metrics, visibleKeys }: MetricStripProps) {
+  const visibleMetrics = config.filter((item) => visibleKeys.includes(item.key))
+
   return (
     <section className="metric-strip" aria-label="当前疫情与响应指标">
-      {config.map((item) => {
+      {visibleMetrics.map((item) => {
         const metric = metrics[item.key]
         return (
-          <article className={metric.value === null ? 'metric-card pending' : 'metric-card'} key={item.key}>
+          <article
+            className={metric.value === null ? 'metric-card pending' : 'metric-card'}
+            key={item.key}
+            title={metric.context ?? (metric.provenance.kind === 'derived' ? '由源材料派生' : '源材料数据')}
+          >
             <div className="metric-heading">
               <span>{item.label}</span>
               <small>{item.english}</small>
@@ -35,10 +42,6 @@ export function MetricStrip({ metrics }: MetricStripProps) {
             <div className="metric-value">
               <strong>{metric.value ?? '—'}</strong>
               <span>{metric.value === null ? '待核实' : suffix[metric.unit]}</span>
-            </div>
-            <div className="metric-foot">
-              <i className={`provenance ${metric.provenance.kind}`} />
-              {metric.context ?? (metric.provenance.kind === 'derived' ? '源数据派生' : '源脚本数据')}
             </div>
           </article>
         )

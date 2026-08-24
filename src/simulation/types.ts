@@ -63,5 +63,6 @@ export type SimulationState = {
 
 export type SimulationAction =
   | { type: 'SELECT_HOTSPOT'; hotspot: HotspotId }
+  | { type: 'CLEAR_HOTSPOT' }
   | { type: 'RESOLVE_DECISION'; decision: DecisionId }
   | { type: 'RESET_NODE' }

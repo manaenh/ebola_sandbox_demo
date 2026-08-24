@@ -38,7 +38,7 @@ export const createInitialState = (runId = 1): SimulationState => ({
   phase: 'deciding',
   scenePhase: 'observing',
   selectedDecision: null,
-  activeHotspot: 'zhou-qihang',
+  activeHotspot: null,
   metrics: initialMetrics(),
   revealedNodes: ['M1-1'],
   eventLog: [
@@ -58,6 +58,10 @@ export function simulationReducer(
 ): SimulationState {
   if (action.type === 'SELECT_HOTSPOT') {
     return { ...state, activeHotspot: action.hotspot }
+  }
+
+  if (action.type === 'CLEAR_HOTSPOT') {
+    return { ...state, activeHotspot: null }
   }
 
   if (action.type === 'RESET_NODE') {

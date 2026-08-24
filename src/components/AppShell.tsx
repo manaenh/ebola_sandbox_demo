@@ -5,34 +5,18 @@ export type AppView = 'briefing' | 'command' | 'review'
 type AppShellProps = {
   view: AppView
   onViewChange: (view: AppView) => void
-  simulationTime: string
-  onReset: () => void
   children: ReactNode
 }
 
-const navItems: { id: AppView; label: string; english: string }[] = [
-  { id: 'briefing', label: '背景简报', english: 'BRIEFING' },
-  { id: 'command', label: '联合指挥', english: 'COMMAND' },
-  { id: 'review', label: '复盘评估', english: 'AFTER ACTION' },
+const navItems: { id: AppView; label: string }[] = [
+  { id: 'briefing', label: '背景简报' },
+  { id: 'command', label: '联合指挥' },
+  { id: 'review', label: '复盘评估' },
 ]
-
-function formatSimulationTime(value: string) {
-  const date = new Date(value)
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-    timeZone: 'Asia/Shanghai',
-  }).format(date)
-}
 
 export function AppShell({
   view,
   onViewChange,
-  simulationTime,
-  onReset,
   children,
 }: AppShellProps) {
   return (
@@ -59,25 +43,10 @@ export function AppShell({
               type="button"
             >
               <span>{item.label}</span>
-              <small>{item.english}</small>
             </button>
           ))}
         </nav>
 
-        <div className="topbar-status">
-          <div className="sim-badge">
-            <span className="pulse-dot" />
-            情景推演 · 模拟场景
-          </div>
-          <div className="clock-block">
-            <small>SIMULATION TIME</small>
-            <strong>{formatSimulationTime(simulationTime)}</strong>
-          </div>
-          <button className="icon-button" type="button" onClick={onReset} title="重置 M1-1">
-            ↻
-            <span className="sr-only">重置 M1-1</span>
-          </button>
-        </div>
       </header>
 
       <main>{children}</main>
