@@ -109,7 +109,7 @@
 
 ```ts
 type Provenance = {
-  kind: 'source' | 'derived' | 'assumption' | 'unknown'
+  kind: 'SOURCE_FACT' | 'SCHEDULED_SOURCE_CONSEQUENCE' | 'DERIVED_STATE' | 'SIMULATION_ASSUMPTION'
   document: string
   locator: string
   note?: string
@@ -171,19 +171,19 @@ reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 只应用即时 effe
 - `assessmentRequired` 保持未核定，后续全程规范路径汇总才可显示院内 24 人。
 - cue：患者沿隔离通道移动、隔离门开启、候诊区无污染警戒。
 
-选择 B 后登记 11:36 呕吐暴露和 12:00 隔离两个后果；在 11:12 与 11:20 均不得提前执行：
+选择 B 后登记“延迟隔离期间”的呕吐暴露和 12:00 隔离两个后果；在 11:12 与 11:20 均不得提前执行：
 
 - `isolationCompletedAt=12:00`
 - `exposureDuration=78 min`
-- 11:36 后 `additionalAssessmentRequired=21`，语义为“本事件新增需评估人员”，不是感染、疑似或高风险接触者。
+- 呕吐暴露发生后 `additionalAssessmentRequired=21`，语义为“本事件新增需评估人员”，不是感染、疑似或高风险接触者。内部 11:36 仅用于确定性排序，必须标记为 `SIMULATION_ASSUMPTION`，正常 UI 只显示“延迟隔离期间”。
 - cue：候诊区呕吐事件、污染半径、保洁/候诊者停留、隔离延后。
 
 ### 7.3 M1-2 患者拒绝
 
 进入时间固定为 `11:12`。M1-1 路径继续保留：11:05 隔离路径中患者位于隔离区；12:00 隔离路径中患者在 11:12 仍位于分诊区域。
 
-- 风险沟通路径：记录 `communicationDelayMinutes=15`、患者配合、采样可继续；显示家属视频联系。
-- 直接推进路径：记录患者短视频上传和 `earlyPublicOpinionRisk=true`；不得添加浏览量、转发量或影响人数。
+- 风险沟通路径：11:12 记录 `communicationStatus='in-progress'`、`samplingReadiness='delayed'` 和 `communicationDelayMinutes=15`；约 11:27 的定时源后果才设置患者配合、`communicationStatus='successful'` 与 `samplingReadiness='improved'`。11:20 首次报告时沟通仍在进行。
+- 直接推进路径：记录 `communicationStatus='strained'`、`samplingReadiness='delayed'`、患者短视频上传和 `earlyPublicOpinionSignalTriggeredByM1=true`；不得解释为采样永久不可能，也不得添加浏览量、转发量或影响人数。
 
 ### 7.4 M1-3 首次报告
 
@@ -191,7 +191,7 @@ reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 只应用即时 effe
 
 - 先行快报路径：记录 15 分钟内报告、疾控响应启动、12:00 前到场。
 - 等待检验路径：记录 `responseDelayMinutes=130`，显示 `+2h10m`；该字段必须带入后续接触追踪等事件。
-- 结果确认后进入 `module-complete`，不得自动启动 Module 2。
+- 结果确认后进入 `module-complete`；Module 2 只能通过全局态势中的下一任务显式启动，启动时不得重置 Module 1 状态。
 
 ### 7.5 八条组合与派生状态
 
@@ -206,11 +206,37 @@ reducer 是唯一业务状态写入口：`RESOLVE_DECISION` 只应用即时 effe
 城市态势不是第二套模拟状态。`getCitySituation(state)` 只把当前 `SimulationState` 投影为位置、路线、信号与地点详情：
 
 - 机场标记为“经过”；机场交通、家庭、社区与网约车在完成暴露调查前标记为“待调查”。
-- 医院在 Module 1 中标记为“疑似病例所在地”；仅当 11:36 呕吐后果实际执行后，才切换为“体液暴露事件”。
+- 医院在 Module 1 中标记为“疑似病例所在地”；仅当延迟隔离期间的呕吐后果实际执行后，才切换为“体液暴露事件”。
 - 延迟分诊路径的 21 人只进入 `additionalAssessmentRequired`，城市图必须显示“新增需评估 21 人”，不得显示为感染、疑似病例或高风险接触者。
 - 疾控机构在首次报告前为“响应待命”；先行快报后为“响应已启动”；等待检验后为“响应延迟 +2 小时 10 分钟”。
-- `earlyPublicOpinionRisk` 只在医院详情中产生沟通/舆情信号，不扩散为地理疫情范围。
+- `earlyPublicOpinionSignalTriggeredByM1` 只表示 Module 1 是否触发早期沟通/舆情信号，不是后续全局舆情风险的永久保证，也不扩散为地理疫情范围。
 - 位置之间的轨迹线只表示移动或响应联系，不表示传播；有效暴露必须由后续调查节点明确判定。
+
+### 7.7 Module 2 处置与追踪语义
+
+- M2-2 A 表达最小必要项目、双人核对、三重包装、专人运输与交接追踪；B 表达在专项包装和交接核对未完成时按常规流程推进。污染后果来自处置与包装缺陷，不得解释为“检测项目较多导致污染”。
+- M2-3 A 设置 `tracingMode='full'` 与 `fullTracingActivated=true`，表示初筛阳性后立即全面启动调查、风险分类和持续追踪。
+- M2-3 B 设置 `tracingMode='preliminary'` 与 `fullTracingActivated=false`，表示确证前已开展名单核实、初步联系和身份/地址检查，因此能够形成 18:00 的 61% 查找进展；不得显示为“完全没有追踪”。
+- M2-4 复核确证后两条路径均进入 `tracingMode='full'`，但 92%/61% 查找进展、既有延迟和工作负荷继续保留。
+
+### 7.8 Provenance 与精确时间审计
+
+- `SOURCE_FACT`：源脚本明确给出的事件、数值或状态。
+- `SCHEDULED_SOURCE_CONSEQUENCE`：源脚本支持但在事件注入后才发生的后果，例如约 11:27 配合、12:00 隔离、13:10 接收和 17:40 标本到达。
+- `DERIVED_STATE`：由源事实和当前状态确定性计算的质量或压力状态，不是流行病学测量值。
+- `SIMULATION_ASSUMPTION`：仅为引擎排序、地图放置或演示表达引入的细节。M1-1 延迟路径内部使用 11:36 执行呕吐后果，但正常 UI 和报告只能显示“延迟隔离期间”，且必须保留假设标记。
+- provenance 主要供工程审计、来源详情和演后报告使用，正常推演界面不重复显示大面积来源标签。
+
+### 7.9 Module 3 调查、风险分类与监测语义
+
+- M3-1 的 126 人是首轮“需调查人员”，五个来源分组之和必须恒等于 126；不得把 92%/61% 前序查找进展乘以 126 伪造已联系人数。
+- 缺少电话号码 18 人与身份信息不完整 9 人是两类信息缺口，源脚本未说明是否互斥，因此不得相加为 27 个独立对象。
+- M3-2 复核后的 7/18/39 分别是高风险、中风险和低风险观察；234 仅是 `298 - 7 - 18 - 39` 的 `DERIVED_STATE`，不表示感染或排除疾病诊断。
+- M3-3 的跨区域地图坐标和“6 小时内 / 24 小时后”的内部执行边界均标记为 `SIMULATION_ASSUMPTION`；正常 UI 只显示源脚本支持的相对结果。
+- 12 人聚餐发生于失联人员无症状期，`effectiveExposureEvent=false`，只启动风险沟通；不得增加感染、疑似病例或高风险接触者数。
+- M2-3 的 92%/61% 只能写入 `initialHighRiskLocateRate`，表示首批高风险接触者找到率；不得换算为 126 人名单的已联系或已核实人数。
+- 罗某的源脚本身份为同行人员，尚未在 M3-3 明确分类为高风险。找到罗某只闭环 `missingTravelerStatus`、`crossRegionCoordinationStatus` 和有效暴露判定；`highRiskLostToFollowUpTarget=0` 是追踪项目目标，不是罗某的风险分类结果。
+- 模块完成后建立 `monitoringPhase='active'` 与个体 `ContactMonitoring` 记录容器。每条记录分别保存 `lastExposureAt`、`monitoringStartAt`、`monitoringEndAt`、`currentMonitoringDay`、`monitoringStatus` 和 `symptomaticAlert`；不建立全局监测日时钟。
 
 ## 8. 不变量
 

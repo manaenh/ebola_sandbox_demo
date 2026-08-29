@@ -31,19 +31,17 @@ export function IntelDock({ state }: { state: SimulationState }) {
 
       {tab === 'tree' && <ProgressiveDecisionTree state={state} />}
       {tab === 'timeline' && <EventTimeline state={state} />}
-      {tab === 'chain' && <ExposureChain />}
+      {tab === 'chain' && <ExposureChain state={state} />}
     </section>
   )
 }
 
 function ProgressiveDecisionTree({ state }: { state: SimulationState }) {
   const currentIndex = eventOrder.indexOf(state.currentEventId)
-  const revealedEvents = eventOrder.filter((_, index) => (
-    state.phase === 'module-complete' || index <= currentIndex
-  ))
+  const revealedEvents = eventOrder.filter((_, index) => index <= currentIndex)
 
   return (
-    <div className="progressive-tree" role="tabpanel" aria-label="首诊响应动态决策树">
+    <div className="progressive-tree" role="tabpanel" aria-label="当前推演动态决策树">
       {revealedEvents.map((eventId, index) => {
         const event = getEventDefinition(eventId)
         const selectedId = state.decisions[eventId]
@@ -53,33 +51,36 @@ function ProgressiveDecisionTree({ state }: { state: SimulationState }) {
           <div className="tree-stage-wrap" key={eventId}>
             <section className={`tree-stage ${isCurrent ? 'current' : 'completed'}`}>
               <div className="stage-event-node">
-                <small>{isCurrent ? '当前事件' : '已完成'}</small>
+                <small>{event.kind === 'milestone' ? '响应里程碑' : isCurrent ? '当前事件' : '已完成'}</small>
                 <strong>{event.decisionTreeLabel}</strong>
                 <span>{event.time}</span>
               </div>
-              <div className="stage-stem" aria-hidden="true" />
-              <div className="stage-branches">
-                {event.decisions.map((option) => {
-                  const isSelected = selectedId === option.id
-                  return (
-                    <div
-                      className={`stage-branch ${isSelected ? 'selected' : ''} ${selectedId && !isSelected ? 'subdued' : ''}`}
-                      key={option.id}
-                    >
-                      <i>{option.code}</i>
-                      <div>
-                        <strong>{option.title}</strong>
-                        <small>{isSelected ? option.effects.outcome.label : isCurrent ? '可选路径' : '未选择路径'}</small>
-                      </div>
+              {event.kind === 'milestone' ? (
+                <div className="stage-milestone-result"><strong>{eventId === 'M4-2' ? '确诊病例 · 2 例' : '确诊病例 · 1 例'}</strong><small>{eventId === 'M4-2' ? '周启航 → 沈洁' : '联合响应已启动'}</small></div>
+              ) : (
+                <>
+                  <div className="stage-stem" aria-hidden="true" />
+                  <div className="stage-branches">
+                    {event.decisions.map((option) => {
+                      const isSelected = selectedId === option.id
+                      return (
+                        <div className={`stage-branch ${isSelected ? 'selected' : ''} ${selectedId && !isSelected ? 'subdued' : ''}`} key={option.id}>
+                          <i>{option.code}</i>
+                          <div>
+                            <strong>{option.title}</strong>
+                            <small>{isSelected ? option.effects.outcome.label : isCurrent ? '可选路径' : '未选择路径'}</small>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                  {selectedId && (
+                    <div className="stage-rejoin" aria-label="两条处置路径汇入下一共同事件">
+                      <i aria-hidden="true" />
+                      <span>进入下一共同事件</span>
                     </div>
-                  )
-                })}
-              </div>
-              {selectedId && (
-                <div className="stage-rejoin" aria-label="两条处置路径汇入下一共同事件">
-                  <i aria-hidden="true" />
-                  <span>进入下一共同事件</span>
-                </div>
+                  )}
+                </>
               )}
             </section>
             {index < revealedEvents.length - 1 && <div className="tree-stage-connector" aria-hidden="true"><i /></div>}
@@ -92,7 +93,7 @@ function ProgressiveDecisionTree({ state }: { state: SimulationState }) {
 
 function EventTimeline({ state }: { state: SimulationState }) {
   return (
-    <div className="timeline-view" role="tabpanel" aria-label="首诊响应事件时间线">
+    <div className="timeline-view" role="tabpanel" aria-label="应急响应事件时间线">
       <div className="timeline-direction"><span>过去</span><i /><span>当前</span><i /><span>后续</span></div>
       <div className="event-timeline module-one-timeline">
         {eventOrder.map((eventId) => {
@@ -101,7 +102,7 @@ function EventTimeline({ state }: { state: SimulationState }) {
           return (
             <TimelineItem
               key={eventId}
-              date="08月05日"
+              date={`${event.date.slice(5, 7)}月${event.date.slice(8, 10)}日`}
               time={event.time}
               title={event.title}
               status={status}
@@ -114,28 +115,32 @@ function EventTimeline({ state }: { state: SimulationState }) {
 }
 
 function timelineStatus(eventId: EventId, state: SimulationState): TimelineStatus {
-  if (state.phase === 'module-complete') return 'occurred'
-  if (eventId === state.currentEventId) return 'current'
+  if (eventId === state.currentEventId) return state.phase === 'module-complete' ? 'occurred' : 'current'
   if (state.completedEventIds.includes(eventId)) return 'occurred'
   return 'pending'
 }
 
-function ExposureChain() {
+function ExposureChain({ state }: { state: SimulationState }) {
+  const caseLabel = state.module2.confirmed ? '确诊病例' : '疑似病例'
+  const tracingLabel = state.module2.tracingMode === 'full'
+    ? '全面接触调查已启动'
+    : state.module2.tracingMode === 'preliminary' ? '基础名单核查中' : '接触调查尚未启动'
   return (
     <div className="chain-view" role="tabpanel" aria-label="传播与暴露链">
       <div className="transmission-chain">
         <div className="chain-node infected"><small>已知感染者</small><strong>境外感染者</strong><span>源暴露病例</span></div>
         <div className="chain-relation effective"><span>07月27日 · 有效暴露</span><i /></div>
-        <div className="chain-node suspected"><small>当前调查对象</small><strong>周启航</strong><span>疑似病例</span></div>
-        <div className="chain-relation contact"><span>接触调查尚未启动</span><i /></div>
-        <div className="chain-node unrevealed"><small>后续关系</small><strong>待揭示</strong><span>不提前显示结果</span></div>
+        <div className={state.module2.confirmed ? 'chain-node infected' : 'chain-node suspected'}><small>当前调查对象</small><strong>周启航</strong><span>{caseLabel}</span></div>
+        <div className={`chain-relation ${state.module4.secondaryConfirmed ? 'effective' : 'contact'}`}><span>{state.module4.secondaryConfirmed ? '家庭体液暴露 · 已确认传播关系' : tracingLabel}</span><i /></div>
+        <div className={state.module4.secondaryConfirmed ? 'chain-node infected' : 'chain-node unrevealed'}><small>{state.module4.secondaryConfirmed ? '续发病例' : '后续关系'}</small><strong>{state.module4.secondaryConfirmed ? '沈洁' : '待揭示'}</strong><span>{state.module4.secondaryConfirmed ? '确诊病例 · Ct 27.9' : '不提前显示结果'}</span></div>
       </div>
       <div className="chain-legend">
         <span><i className="infected" />感染</span>
         <span><i className="effective" />有效暴露</span>
         <span><i className="contact" />接触但尚未判定</span>
         <span><i className="unrevealed" />尚未发生或揭示</span>
-        <strong>接触 ≠ 有效暴露 ≠ 感染</strong>
+        <strong>病例轨迹 ≠ 接触者调查 ≠ 已确认传播链</strong>
+        <strong>接触 ≠ 有效暴露 ≠ 密切接触者 ≠ 感染</strong>
       </div>
     </div>
   )

@@ -45,7 +45,7 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
       </div>
 
       <div className={`scene-canvas event-${eventId.toLowerCase()} location-${scene.patientLocation} mood-${scene.patientMood} interaction-${scene.interaction} phone-${scene.phoneMode} response-${scene.cdcResponse} exposure-${scene.exposureEvent ? 'active' : 'clear'}`}>
-        <svg viewBox="0 0 1000 540" role="img" aria-label="市中心医院急诊分诊数字孪生场景。周启航正在分诊，分诊护士位于分诊台后，公共候诊区有十八人，右上方为隔离室。">
+        <svg viewBox="0 0 1100 540" role="img" aria-label="市中心医院急诊分诊数字孪生场景。周启航正在分诊，分诊护士位于分诊台后，公共候诊区有十八人，右上方为隔离室。">
           <defs>
             <linearGradient id="floor" x1="0" x2="1" y1="0" y2="1">
               <stop stopColor="#15343d" />
@@ -86,12 +86,12 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
           </g>
 
           <g className="zone-sign waiting-sign" transform="translate(136 254)">
-            <rect width="116" height="39" rx="4" />
-            <text x="10" y="17">公共候诊区</text><text className="zone-english" x="10" y="31">WAITING AREA</text>
+            <rect width="142" height="52" rx="5" />
+            <text x="12" y="22">公共候诊区</text><text className="zone-english" x="12" y="42">WAITING AREA</text>
           </g>
           <g className="zone-sign triage-sign" transform="translate(375 211)">
-            <rect width="119" height="39" rx="4" />
-            <text x="10" y="17">急诊分诊台</text><text className="zone-english" x="10" y="31">TRIAGE DESK</text>
+            <rect width="145" height="52" rx="5" />
+            <text x="12" y="22">急诊分诊台</text><text className="zone-english" x="12" y="42">TRIAGE DESK</text>
           </g>
 
           <g className="isolation-room">
@@ -102,8 +102,8 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
             <path d="M719 152 L748 165 L748 210 L719 197Z" fill="#59e1ec" opacity=".13" />
           </g>
           <g className="zone-sign isolation-sign" transform="translate(827 77)">
-            <rect width="105" height="39" rx="4" />
-            <text x="10" y="17">隔离室</text><text className="zone-english" x="10" y="31">ISOLATION</text>
+            <rect width="126" height="52" rx="5" />
+            <text x="12" y="22">隔离室</text><text className="zone-english" x="12" y="42">ISOLATION</text>
           </g>
 
           <g
@@ -159,9 +159,9 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
             <ellipse cx="556" cy="373" rx="46" ry="26" />
             <path d="M507 399 L570 367 L629 395 L565 427Z" />
             <g className="exposure-label" transform="translate(491 438)">
-              <rect width="151" height="36" rx="4" />
-              <text x="10" y="16">体液暴露事件 · 待评估 +21</text>
-              <text className="zone-english" x="10" y="29">EXPOSURE EVENT</text>
+              <rect width="220" height="52" rx="5" />
+              <text x="12" y="21">体液暴露事件 · 待评估 +21</text>
+              <text className="zone-english" x="12" y="41">EXPOSURE EVENT</text>
             </g>
           </g>
 
@@ -186,16 +186,17 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
 
           <g className="patient-marker">
             <path d="M16-61 L42-76 H119" />
-            <rect x="40" y="-91" width="139" height="25" rx="12" />
-            <text x="52" y="-75">周启航 · {patientStatus}</text>
+            <rect x="40" y="-98" width="168" height="34" rx="17" />
+            <text x="55" y="-75">周启航 · {patientStatus}</text>
           </g>
 
           {scene.phoneMode !== 'none' && (
             <g className={`phone-state ${scene.phoneMode}`}>
+              <rect className="phone-label-bg" x="14" y="-116" width="126" height="29" rx="5" />
               <rect x="-8" y="-116" width="19" height="29" rx="3" />
               <circle cx="1.5" cy="-92" r="1.5" />
               <path d="M-3-110 H6 M-3-105 H6" />
-              <text x="18" y="-99">{scene.phoneMode === 'family-video' ? '家属视频联系' : '短视频已上传'}</text>
+              <text x="24" y="-97">{scene.phoneMode === 'family-video' ? '家属视频联系' : '短视频已上传'}</text>
             </g>
           )}
 

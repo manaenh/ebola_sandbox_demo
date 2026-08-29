@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   AttributionControl,
   type ErrorEvent as MapErrorEvent,
@@ -12,7 +12,8 @@ import {
 import 'maplibre-gl/dist/maplibre-gl.css'
 import maplibreWorkerUrl from 'maplibre-gl/dist/maplibre-gl-csp-worker.js?url'
 import type { GeoJSON } from 'geojson'
-import { buildRouteGeoJSON, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from '../city/mapData'
+import { buildRouteGeoJSON, eventContextCamera, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from '../city/mapData'
+import { getEventMapContext } from '../city/eventMapContext'
 import { getCitySituation } from '../city/selectors'
 import type { CityLocationId, CityLocationView } from '../city/types'
 import type { SimulationState } from '../simulation/types'
@@ -20,6 +21,7 @@ import type { SimulationState } from '../simulation/types'
 type ShenzhenSituationProps = {
   state: SimulationState
   onEnterScene: () => void
+  sidePanel?: ReactNode
 }
 
 const emptyRoutes = { type: 'FeatureCollection' as const, features: [] }
@@ -121,20 +123,73 @@ function createCommandStyle(regionalLand: GeoJSON, boundary: GeoJSON, districts:
           'line-dasharray': [2, 2],
         },
       },
+      {
+        id: 'patient-transfer-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'transfer'],
+        paint: {
+          'line-color': ['match', ['get', 'status'], 'active', '#ffb45b', 'delayed', '#ff726f', 'completed', '#64e6c3', '#8c765f'],
+          'line-opacity': 0.88,
+          'line-width': 3,
+          'line-dasharray': [3, 1.5],
+        },
+      },
+      {
+        id: 'specimen-transfer-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'specimen'],
+        paint: {
+          'line-color': ['match', ['get', 'status'], 'active', '#59e1ec', 'delayed', '#ff726f', 'completed', '#64e6c3', '#647f87'],
+          'line-opacity': 0.9,
+          'line-width': 2.5,
+          'line-dasharray': [1, 2],
+        },
+      },
+      {
+        id: 'investigation-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'investigation'],
+        paint: {
+          'line-color': ['match', ['get', 'status'], 'completed', '#64e6c3', '#62b9c8'],
+          'line-opacity': 0.58,
+          'line-width': 1.8,
+          'line-dasharray': [1, 2.5],
+        },
+      },
+      {
+        id: 'cross-region-routes',
+        type: 'line',
+        source: 'simulation-routes',
+        filter: ['==', ['get', 'kind'], 'cross-region'],
+        paint: {
+          'line-color': ['match', ['get', 'status'], 'completed', '#64e6c3', '#ffb45b'],
+          'line-opacity': 0.88,
+          'line-width': 2.8,
+          'line-dasharray': [2.5, 1.5],
+        },
+      },
     ],
   }
 }
 
-export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProps) {
+export function ShenzhenSituation({ state, onEnterScene, sidePanel }: ShenzhenSituationProps) {
   const situation = useMemo(() => getCitySituation(state), [state])
-  const [selectedId, setSelectedId] = useState<CityLocationId>('central-hospital')
+  const mapContext = useMemo(() => getEventMapContext(state), [state])
+  const [selectedId, setSelectedId] = useState<CityLocationId | null>(() => getEventMapContext(state).primaryLocation ?? null)
   const [showTrajectory, setShowTrajectory] = useState(false)
   const [mapReady, setMapReady] = useState(false)
   const [mapError, setMapError] = useState(false)
   const mapContainerRef = useRef<HTMLDivElement | null>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<MapMarker[]>([])
-  const selected = situation.locations.find((location) => location.id === selectedId) ?? situation.locations[0]
+  const appliedMapContextRef = useRef<string | null>(null)
+  const selected = situation.locations.find((location) => location.id === selectedId)
+    ?? situation.locations.find((location) => location.id === mapContext.primaryLocation)
+    ?? situation.locations.find((location) => location.visibleByDefault)
+    ?? situation.locations[0]
   const visibleLocations = useMemo(
     () => getVisibleMapLocations(situation, showTrajectory),
     [situation, showTrajectory],
@@ -144,8 +199,6 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
     if (!mapContainerRef.current || mapRef.current) return
     let disposed = false
     let map: MapLibreMap | null = null
-    let introTimer: number | undefined
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const base = import.meta.env.BASE_URL
 
     Promise.all([
@@ -171,11 +224,6 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
       map.addControl(new AttributionControl({ compact: true }), 'top-right')
       map.once('style.load', () => {
         setMapReady(true)
-        introTimer = window.setTimeout(() => {
-          if (!map) return
-          if (reducedMotion) map.jumpTo(shenzhenCamera)
-          else map.flyTo({ ...shenzhenCamera, duration: 1800, curve: 1.25, essential: true })
-        }, 450)
       })
       map.on('error', (event: MapErrorEvent) => {
         if (/geojson|source|worker|webgl/i.test(event.error?.message ?? '')) setMapError(true)
@@ -186,7 +234,6 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
 
     return () => {
       disposed = true
-      if (introTimer) window.clearTimeout(introTimer)
       markersRef.current.forEach((marker) => marker.remove())
       markersRef.current = []
       map?.remove()
@@ -200,6 +247,18 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
     const source = map.getSource('simulation-routes') as GeoJSONSource | undefined
     source?.setData(buildRouteGeoJSON(situation, showTrajectory))
   }, [mapReady, showTrajectory, situation])
+
+  useEffect(() => {
+    const map = mapRef.current
+    if (!map || !mapReady || appliedMapContextRef.current === mapContext.key) return
+    appliedMapContextRef.current = mapContext.key
+    if (mapContext.primaryLocation) setSelectedId(mapContext.primaryLocation)
+    else if (mapContext.focusType === 'city-wide') setSelectedId(null)
+    const camera = eventContextCamera(mapContext, situation)
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (reducedMotion) map.jumpTo(camera)
+    else map.flyTo({ ...camera, duration: 1250, curve: 1.15, essential: true })
+  }, [mapContext, mapReady, situation])
 
   const focusLocation = useCallback((location: CityLocationView) => {
     setSelectedId(location.id)
@@ -230,7 +289,7 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
     const next = !showTrajectory
     setShowTrajectory(next)
     if (!next && !situation.locations.find((item) => item.id === selectedId)?.visibleByDefault) {
-      setSelectedId('central-hospital')
+      setSelectedId(mapContext.primaryLocation ?? situation.locations.find((item) => item.visibleByDefault)?.id ?? null)
     }
   }
 
@@ -268,18 +327,25 @@ export function ShenzhenSituation({ state, onEnterScene }: ShenzhenSituationProp
             </div>
             <div className="map-coordinate-readout">
               <span>PRD / SHENZHEN</span>
-              <b>22.61°N&nbsp;&nbsp;114.06°E</b>
+              <b>
+                {shenzhenCamera.center[1].toFixed(2)}°N&nbsp;&nbsp;
+                {shenzhenCamera.center[0].toFixed(2)}°E
+              </b>
             </div>
             <div className="city-map-legend" aria-label="地图图例">
               <span><i className="event-node" />事件节点</span>
               <span><i className="response-node" />响应节点</span>
-              <span><i className="trajectory-node" />病例轨迹</span>
+              {state.module2.started && <span><i className="transfer-route" />医疗转运</span>}
+              {state.module2.samplingProtocol !== 'pending' && <span><i className="specimen-route" />标本运输</span>}
+              {state.module3.started && <span><i className="investigation-route" />调查工作</span>}
+              {state.currentEventId === 'M3-3' && <span><i className="cross-region-route-legend" />跨区域协查</span>}
+              {showTrajectory && <span><i className="trajectory-node" />病例轨迹</span>}
             </div>
             <small className="city-map-note">轨迹表示移动历史，不代表有效暴露或感染。演练点位不对应真实地址。</small>
           </div>
         </section>
 
-        <CityLocationDetail location={selected} onEnterScene={onEnterScene} />
+        {sidePanel ?? <CityLocationDetail location={selected} onEnterScene={onEnterScene} />}
       </div>
     </div>
   )
@@ -311,7 +377,10 @@ function createLocationMarker(location: CityLocationView, selected: boolean, onS
 }
 
 function CityLocationDetail({ location, onEnterScene }: { location: CityLocationView; onEnterScene: () => void }) {
-  const categoryLabel = location.category === 'event' ? '事件节点' : location.category === 'response' ? '响应节点' : '病例轨迹'
+  const categoryLabel = location.category === 'event' ? '事件节点'
+    : location.category === 'response' ? '响应节点'
+      : location.category === 'investigation' ? '调查节点'
+        : '病例轨迹'
   return (
     <aside className={`city-location-detail status-${location.status}`} aria-live="polite">
       <div className="location-detail-heading">

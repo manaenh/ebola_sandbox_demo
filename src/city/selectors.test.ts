@@ -3,7 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createInitialState, simulationReducer } from '../simulation/reducer'
 import type { DecisionId, SimulationState } from '../simulation/types'
-import { buildRouteGeoJSON, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from './mapData'
+import { buildRouteGeoJSON, eventContextCamera, getVisibleMapLocations, locationCamera, regionCamera, shenzhenCamera } from './mapData'
+import { getEventMapContext } from './eventMapContext'
 import { getCitySituation } from './selectors'
 
 const choose = (state: SimulationState, decision: DecisionId) => simulationReducer(state, { type: 'RESOLVE_DECISION', decision })
@@ -15,7 +16,35 @@ function play(first: DecisionId, second: DecisionId, third: DecisionId) {
   return next(choose(state, third))
 }
 
+const startM2 = (state: SimulationState) => simulationReducer(state, { type: 'START_MODULE_2' })
+
+function startM3() {
+  let state = startM2(play('rapid-epidemiology', 'risk-communication', 'early-report'))
+  state = next(choose(state, 'backup-transfer'))
+  state = next(choose(state, 'standardized-sampling'))
+  state = next(choose(state, 'escalate-on-screening'))
+  state = next(state)
+  return simulationReducer(state, { type: 'START_MODULE_3' })
+}
+
+function startM4() {
+  let state = startM3()
+  state = next(choose(state, 'classify-investigation-list'))
+  state = next(choose(state, 'classify-flight-risk'))
+  state = next(choose(state, 'minimum-info-coordination'))
+  return simulationReducer(state, { type: 'START_MODULE_4' })
+}
+
 describe('Shenzhen city situation selector', () => {
+  it('uses separate CSS classes for the cross-region scene and its small legend symbol', () => {
+    const styles = fs.readFileSync(path.resolve('src/styles.css'), 'utf8')
+    const mapView = fs.readFileSync(path.resolve('src/components/ShenzhenSituation.tsx'), 'utf8')
+    expect(styles).toContain('.cross-region-route-scene')
+    expect(styles).toContain('.cross-region-route-legend')
+    expect(styles).not.toMatch(/\.cross-region-route\s*\{/)
+    expect(mapView).toContain('className="cross-region-route-legend"')
+  })
+
   it('models movement and investigation without implying citywide infection', () => {
     const situation = getCitySituation(createInitialState())
     expect(situation.locations.find((item) => item.id === 'airport')?.status).toBe('passed')
@@ -90,7 +119,7 @@ describe('Shenzhen city situation selector', () => {
     expect(hospital.facts).toEqual(expect.arrayContaining([
       expect.objectContaining({ label: '候诊暴露', value: '78 分钟' }),
       expect.objectContaining({ label: '评估负荷', value: '新增 21 人' }),
-      expect.objectContaining({ label: '沟通信号', value: '舆情风险已出现' }),
+      expect.objectContaining({ label: '沟通信号', value: 'M1 舆情信号已出现' }),
     ]))
     expect(cdc.status).toBe('response-delayed')
     expect(situation.signals.find((item) => item.label === '外部响应')?.value).toBe('延迟 2h10m')
@@ -110,5 +139,132 @@ describe('Shenzhen city situation selector', () => {
       fingerprints.push(JSON.stringify({ hospital: hospital.status, facts: hospital.facts, cdc: cdc.status }))
     })))
     expect(new Set(fingerprints).size).toBe(8)
+  })
+
+  it('reveals a medical-transfer task after Module 1 without implying disease spread', () => {
+    const module1 = play('rapid-epidemiology', 'risk-communication', 'early-report')
+    const situation = getCitySituation(module1)
+    expect(getVisibleMapLocations(situation, false).map((item) => item.id)).toContain('designated-hospital')
+    const transfer = situation.routes.find((route) => route.id === 'patient-transfer')!
+    expect(transfer.kind).toBe('transfer')
+    expect(transfer.status).toBe('pending')
+    const transferFeature = buildRouteGeoJSON(situation, false).features.find((feature) => feature.properties?.id === 'patient-transfer')
+    expect(transferFeature?.properties?.meaning).toBe('medical-transfer')
+    expect(situation.summary).toContain('医疗转运')
+  })
+
+  it('progressively activates designated hospital and specimen route from Module 2 state', () => {
+    let state = startM2(play('rapid-epidemiology', 'risk-communication', 'early-report'))
+    state = choose(state, 'backup-transfer')
+    let situation = getCitySituation(state)
+    expect(situation.routes.find((route) => route.id === 'patient-transfer')?.status).toBe('active')
+
+    state = next(state)
+    state = choose(state, 'standardized-sampling')
+    situation = getCitySituation(state)
+    expect(getVisibleMapLocations(situation, false).map((item) => item.id)).toContain('laboratory')
+    expect(situation.routes.find((route) => route.id === 'specimen-transfer')).toMatchObject({ kind: 'specimen', status: 'active' })
+    expect(buildRouteGeoJSON(situation, false).features.find((feature) => feature.properties?.id === 'specimen-transfer')?.properties?.meaning).toBe('specimen-transfer')
+  })
+
+  it('shows delayed specimen handling and final response network from actual branch state', () => {
+    let state = startM2(play('staged-assessment', 'direct-procedure', 'await-tests'))
+    state = next(choose(state, 'wait-regular-transfer'))
+    state = next(choose(state, 'routine-multi-test'))
+    expect(getCitySituation(state).routes.find((route) => route.id === 'specimen-transfer')?.status).toBe('delayed')
+    state = next(choose(state, 'await-confirmation'))
+    const situation = getCitySituation(state)
+    expect(situation.locations.find((item) => item.id === 'designated-hospital')?.status).toBe('confirmed-location')
+    expect(situation.locations.find((item) => item.id === 'laboratory')?.status).toBe('response-active')
+    expect(situation.locations.find((item) => item.id === 'cdc')?.status).toBe('response-active')
+    expect(situation.signals.find((item) => item.label === '当前病例')?.value).toBe('确诊 1 例')
+    expect(state.module1.additionalAssessmentRequired).toBe(21)
+  })
+
+  it('shows aggregate Module 3 investigation clusters rather than 126 person markers', () => {
+    const state = startM3()
+    const situation = getCitySituation(state)
+    const visible = getVisibleMapLocations(situation, false)
+    expect(situation.signals.find((item) => item.label === '需调查')?.value).toBe('126 人')
+    expect(visible.map((item) => item.id)).toContain('transport-community-cluster')
+    expect(visible.find((item) => item.id === 'airport')?.facts).toContainEqual(expect.objectContaining({ label: '需调查', value: '39 人' }))
+    expect(visible.find((item) => item.id === 'home')?.facts).toContainEqual(expect.objectContaining({ label: '需调查', value: '4 人' }))
+    expect(situation.locations).toHaveLength(13)
+    expect(situation.summary).toContain('不代表感染地点')
+    expect(state.metrics.riskContacts.value).toBeNull()
+  })
+
+  it('adds a cross-region coordination route with an explicit scenario target', () => {
+    let state = startM3()
+    state = next(choose(state, 'classify-investigation-list'))
+    state = next(choose(state, 'classify-flight-risk'))
+    const situation = getCitySituation(state)
+    const target = situation.locations.find((item) => item.id === 'cross-region-target')!
+    expect(target.visibleByDefault).toBe(true)
+    expect(target.coordinateKind).toBe('scenario')
+    expect(target.sourceNote).toContain('未给出具体省市')
+    expect(situation.routes.find((item) => item.id === 'cross-region-coordination')).toMatchObject({ kind: 'cross-region', status: 'active' })
+    expect(buildRouteGeoJSON(situation, false).features.find((feature) => feature.properties?.id === 'cross-region-coordination')?.properties?.meaning).toBe('cross-region-coordination')
+  })
+
+  it('shows the delayed dinner outcome as no effective exposure after Module 3 completion', () => {
+    let state = startM3()
+    state = next(choose(state, 'classify-investigation-list'))
+    state = next(choose(state, 'classify-flight-risk'))
+    state = next(choose(state, 'await-complete-itinerary'))
+    const situation = getCitySituation(state)
+    const target = situation.locations.find((item) => item.id === 'cross-region-target')!
+    expect(target.detail).toContain('12 人聚餐')
+    expect(target.detail).toContain('未形成有效传播事件')
+    expect(situation.signals.find((item) => item.label === '高风险失访目标')?.value).toBe('0')
+    expect(state.module3.highRiskLostToFollowUpActual).toBeNull()
+    expect(state.metrics.confirmedCases.value).toBe(1)
+  })
+
+  it('derives geographic focus from the current event instead of a global hospital default', () => {
+    let state = createInitialState()
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'location', primaryLocation: 'central-hospital' })
+
+    state = play('rapid-epidemiology', 'risk-communication', 'early-report')
+    state = startM2(state)
+    expect(getEventMapContext(state)).toMatchObject({
+      focusType: 'route', route: { from: 'central-hospital', to: 'designated-hospital' },
+    })
+    state = next(choose(state, 'backup-transfer'))
+    expect(getEventMapContext(state)).toMatchObject({
+      focusType: 'route', route: { from: 'designated-hospital', to: 'laboratory' },
+    })
+    state = next(choose(state, 'standardized-sampling'))
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'multi-location', relatedLocations: ['laboratory', 'cdc'] })
+    state = next(choose(state, 'escalate-on-screening'))
+    expect(getEventMapContext(state).focusType).toBe('city-wide')
+  })
+
+  it('moves Module 3 focus from city-wide clusters to airport, then cross-region and back to city-wide monitoring', () => {
+    let state = startM3()
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'city-wide', cameraPreset: 'city-wide' })
+    state = next(choose(state, 'classify-investigation-list'))
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'location', primaryLocation: 'airport' })
+    expect(eventContextCamera(getEventMapContext(state), getCitySituation(state)).center)
+      .toEqual(getCitySituation(state).locations.find((item) => item.id === 'airport')?.coordinates)
+    state = next(choose(state, 'classify-flight-risk'))
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'cross-region', primaryLocation: 'cross-region-target' })
+    state = next(choose(state, 'minimum-info-coordination'))
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'city-wide', cameraPreset: 'city-wide' })
+  })
+
+  it('moves Module 4 from the monitoring point through medical transfer to the updated city response', () => {
+    let state = startM4()
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'location', primaryLocation: 'monitoring-site' })
+    let situation = getCitySituation(state)
+    expect(situation.locations.find((item) => item.id === 'monitoring-site')).toMatchObject({ visibleByDefault: true, status: 'symptom-alert' })
+    state = choose(state, 'continue-monitoring-assessment')
+    expect(getEventMapContext(state)).toMatchObject({ focusType: 'route', route: { from: 'monitoring-site', to: 'designated-hospital' } })
+    situation = getCitySituation(state)
+    expect(situation.routes.find((item) => item.id === 'monitoring-transfer')).toMatchObject({ kind: 'transfer', status: 'delayed' })
+    state = next(state)
+    expect(state.currentEventId).toBe('M4-2')
+    expect(situation.locations.every((item) => !item.status.includes('infected'))).toBe(true)
+    expect(getCitySituation(state).signals.find((item) => item.label === '确诊病例')?.value).toBe('2 例')
   })
 })

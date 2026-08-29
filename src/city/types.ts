@@ -10,9 +10,13 @@ export type CityLocationId =
   | 'cdc'
   | 'designated-hospital'
   | 'laboratory'
+  | 'transport-community-cluster'
+  | 'cross-region-target'
+  | 'monitoring-site'
+  | 'child-care-support'
 
-export type CityLocationCategory = 'event' | 'response' | 'trajectory'
-export type CityLocationIcon = 'airport' | 'transport' | 'home' | 'place' | 'hospital' | 'response' | 'laboratory'
+export type CityLocationCategory = 'event' | 'response' | 'trajectory' | 'investigation'
+export type CityLocationIcon = 'airport' | 'transport' | 'home' | 'place' | 'hospital' | 'response' | 'laboratory' | 'cluster' | 'cross-region'
 export type CoordinateKind = 'real' | 'scenario'
 
 export type CityLocationStatus =
@@ -23,6 +27,19 @@ export type CityLocationStatus =
   | 'response-ready'
   | 'response-active'
   | 'response-delayed'
+  | 'transfer-pending'
+  | 'transfer-active'
+  | 'patient-received'
+  | 'specimen-in-transit'
+  | 'laboratory-active'
+  | 'confirmed-location'
+  | 'investigation-pending'
+  | 'contacted'
+  | 'classified'
+  | 'cross-region-search'
+  | 'monitoring-active'
+  | 'symptom-alert'
+  | 'care-active'
   | 'future'
 
 export type CityLocationDefinition = {
@@ -50,7 +67,7 @@ export type CityRoute = {
   id: string
   from: CityLocationId
   to: CityLocationId
-  kind: 'trajectory' | 'response'
+  kind: 'trajectory' | 'response' | 'transfer' | 'specimen' | 'investigation' | 'cross-region'
   status: 'completed' | 'pending' | 'active' | 'delayed'
   label?: string
 }
@@ -67,4 +84,16 @@ export type CitySituation = {
   routes: CityRoute[]
   signals: CitySignal[]
   summary: string
+}
+
+export type MapFocusType = 'location' | 'route' | 'city-wide' | 'multi-location' | 'cross-region'
+export type MapCameraPresetId = 'location-close' | 'route-local' | 'response-network' | 'city-wide' | 'cross-region'
+
+export type EventMapContext = {
+  key: string
+  focusType: MapFocusType
+  primaryLocation?: CityLocationId
+  relatedLocations?: CityLocationId[]
+  route?: { from: CityLocationId; to: CityLocationId }
+  cameraPreset: MapCameraPresetId
 }
