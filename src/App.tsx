@@ -1,4 +1,8 @@
 import { useReducer, useState } from 'react'
+import { ShowcaseMode } from './components/showcase/ShowcaseMode'
+import { ShowcaseReview } from './components/showcase/ShowcaseReview'
+import { createExampleReviewState } from './components/showcase/exampleReviewState'
+import { PlatformWorkbench, type WorkbenchPage } from './components/platform/PlatformWorkbench'
 import { AppShell, type AppView } from './components/AppShell'
 import { BackgroundBrief } from './components/BackgroundBrief'
 import { ContactTracingCommandScene } from './components/ContactTracingCommandScene'
@@ -18,9 +22,15 @@ import { SecondaryConfirmationScene } from './components/SecondaryConfirmationSc
 import { ChildCareScene } from './components/ChildCareScene'
 import { createInitialState, simulationReducer } from './simulation/reducer'
 import { getEventDefinition } from './simulation/sourceData'
-import type { MetricKey } from './simulation/types'
+import type { MetricKey, SimulationState } from './simulation/types'
+import './components/showcase/showcase.css'
+
+const exampleReviewState = createExampleReviewState()
 
 export default function App() {
+  const [mode, setMode] = useState<'workbench' | 'showcase' | 'review' | 'simulation'>('workbench')
+  const [workbenchPage, setWorkbenchPage] = useState<WorkbenchPage>('home')
+  const [lastCompletedRun, setLastCompletedRun] = useState<SimulationState | null>(null)
   const [view, setView] = useState<AppView>('command')
   const [commandView, setCommandView] = useState<'city' | 'scene'>('city')
   const [state, dispatch] = useReducer(simulationReducer, undefined, () => createInitialState())
@@ -72,8 +82,28 @@ export default function App() {
     || (state.module === 3 && (state.currentEventId === 'M3-3' || state.phase === 'module-complete'))
     || (state.module === 4 && (state.currentEventId === 'M4-2' || state.phase === 'module-complete'))
 
+  const openShowcase = () => {
+    dispatch({ type: 'RESET_MODULE' })
+    setMode('showcase')
+  }
+  const openLegacy = () => {
+    dispatch({ type: 'RESET_MODULE' })
+    setMode('simulation')
+    setView('command')
+    setCommandView('city')
+  }
+  const returnHome = () => {
+    if (state.module4.secondaryConfirmed) setLastCompletedRun(state)
+    setWorkbenchPage('home')
+    setMode('workbench')
+  }
+
+  if (mode === 'workbench') return <PlatformWorkbench page={workbenchPage} reviewState={state.module4.secondaryConfirmed ? state : lastCompletedRun ?? exampleReviewState} reviewIsExample={!state.module4.secondaryConfirmed && !lastCompletedRun} onNavigate={setWorkbenchPage} onShowcase={openShowcase} onReview={() => setMode('review')} onLegacy={openLegacy} />
+  if (mode === 'showcase') return <ShowcaseMode state={state} dispatch={dispatch} onExit={returnHome} />
+  if (mode === 'review') return <main className="showcase"><header className="showcase-header"><button className="showcase-switch" type="button" onClick={returnHome}>返回工作台 ↗</button></header><ShowcaseReview state={state.module4.secondaryConfirmed ? state : lastCompletedRun ?? exampleReviewState} example={!state.module4.secondaryConfirmed && !lastCompletedRun} /></main>
+
   return (
-    <AppShell view={view} onViewChange={setView}>
+    <AppShell view={view} onViewChange={setView} onShowcase={openShowcase} onHome={returnHome}>
       {view === 'briefing' && <BackgroundBrief />}
       {view === 'review' && <ReviewPlaceholder />}
       {view === 'command' && (

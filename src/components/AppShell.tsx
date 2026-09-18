@@ -5,6 +5,8 @@ export type AppView = 'briefing' | 'command' | 'review'
 type AppShellProps = {
   view: AppView
   onViewChange: (view: AppView) => void
+  onShowcase?: () => void
+  onHome: () => void
   children: ReactNode
 }
 
@@ -18,6 +20,8 @@ export function AppShell({
   view,
   onViewChange,
   children,
+  onShowcase,
+  onHome,
 }: AppShellProps) {
   return (
     <div className="app-shell">
@@ -30,7 +34,7 @@ export function AppShell({
           </div>
           <div>
             <div className="brand-title">埃博拉疫情应急推演</div>
-            <div className="brand-subtitle">EVD RESPONSE DIGITAL TWIN</div>
+            <div className="brand-subtitle">内部示例 · 完整推演</div>
           </div>
         </div>
 
@@ -46,6 +50,8 @@ export function AppShell({
             </button>
           ))}
         </nav>
+        <div className="legacy-actions"><button type="button" className="showcase-switch" onClick={onHome}>返回工作台 ↗</button>
+          {onShowcase && <button type="button" className="showcase-switch" onClick={onShowcase}>快速展示</button>}</div>
 
       </header>
 

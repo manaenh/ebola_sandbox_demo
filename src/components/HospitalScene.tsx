@@ -4,6 +4,7 @@ import type { EventId, HotspotId, SceneState } from '../simulation/types'
 import { CharacterAvatar } from './CharacterAvatar'
 
 type HospitalSceneProps = {
+  compactPatientLabel?: boolean
   eventId: EventId
   scene: SceneState
   activeHotspot: HotspotId | null
@@ -19,7 +20,7 @@ const waitingPeople = [
   [448, 348, 1], [477, 370, 2],
 ] as const
 
-export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClearHotspot }: HospitalSceneProps) {
+export function HospitalScene({ compactPatientLabel = false, eventId, scene, activeHotspot, onHotspot, onClearHotspot }: HospitalSceneProps) {
   const trigger = (event: KeyboardEvent<SVGGElement>, id: HotspotId) => {
     if (event.key === 'Enter' || event.key === ' ') {
       event.preventDefault()
@@ -186,8 +187,12 @@ export function HospitalScene({ eventId, scene, activeHotspot, onHotspot, onClea
 
           <g className="patient-marker">
             <path d="M16-61 L42-76 H119" />
-            <rect x="40" y="-98" width="168" height="34" rx="17" />
-            <text x="55" y="-75">周启航 · {patientStatus}</text>
+            <rect x="40" y="-98" width={compactPatientLabel ? 142 : 168} height="34" rx="17" />
+            {compactPatientLabel ? <>
+              <text x="55" y="-75">周启航</text>
+              <rect className="patient-suspected-badge" x="112" y="-90" width="53" height="20" rx="10" />
+              <text className="patient-suspected-label" x="138.5" y="-76" textAnchor="middle">疑似</text>
+            </> : <text x="55" y="-75">周启航 · {patientStatus}</text>}
           </g>
 
           {scene.phoneMode !== 'none' && (

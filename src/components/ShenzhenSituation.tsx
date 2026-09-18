@@ -28,7 +28,7 @@ const emptyRoutes = { type: 'FeatureCollection' as const, features: [] }
 
 setWorkerUrl(maplibreWorkerUrl)
 
-function createCommandStyle(regionalLand: GeoJSON, boundary: GeoJSON, districts: GeoJSON): StyleSpecification {
+export function createCommandStyle(regionalLand: GeoJSON, boundary: GeoJSON, districts: GeoJSON): StyleSpecification {
   return {
     version: 8,
     name: '深圳应急指挥离线底图',
