@@ -1,5 +1,6 @@
 import { useReducer, useState } from 'react'
 import { ShowcaseMode } from './components/showcase/ShowcaseMode'
+import { ShowcasePauseProvider } from './components/showcase/ShowcasePause'
 import { ShowcaseReview } from './components/showcase/ShowcaseReview'
 import { createExampleReviewState } from './components/showcase/exampleReviewState'
 import { PlatformWorkbench, type WorkbenchPage } from './components/platform/PlatformWorkbench'
@@ -99,7 +100,7 @@ export default function App() {
   }
 
   if (mode === 'workbench') return <PlatformWorkbench page={workbenchPage} reviewState={state.module4.secondaryConfirmed ? state : lastCompletedRun ?? exampleReviewState} reviewIsExample={!state.module4.secondaryConfirmed && !lastCompletedRun} onNavigate={setWorkbenchPage} onShowcase={openShowcase} onReview={() => setMode('review')} onLegacy={openLegacy} />
-  if (mode === 'showcase') return <ShowcaseMode state={state} dispatch={dispatch} onExit={returnHome} />
+  if (mode === 'showcase') return <ShowcasePauseProvider><ShowcaseMode state={state} dispatch={dispatch} onExit={returnHome} /></ShowcasePauseProvider>
   if (mode === 'review') return <main className="showcase"><header className="showcase-header"><button className="showcase-switch" type="button" onClick={returnHome}>返回工作台 ↗</button></header><ShowcaseReview state={state.module4.secondaryConfirmed ? state : lastCompletedRun ?? exampleReviewState} example={!state.module4.secondaryConfirmed && !lastCompletedRun} /></main>
 
   return (

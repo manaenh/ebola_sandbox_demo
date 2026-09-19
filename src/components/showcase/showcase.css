@@ -2,6 +2,9 @@
 .showcase-header { position: absolute; z-index: 5; inset: 0 0 auto; padding: 28px 4vw; display: flex; justify-content: flex-end; align-items: center; background: linear-gradient(#061119ee, transparent); }
 .showcase-switch, .showcase button { border: 1px solid #9ac3cc40; background: #0b2029cc; color: #deedf0; border-radius: 4px; padding: 12px 20px; cursor: pointer; }
 .showcase button:hover, .showcase-switch:hover { border-color: #59e1ec; background: #14333d; }
+.showcase-pause-toggle { position: fixed; z-index: 10; right: 22px; bottom: 22px; width: 34px; height: 34px; padding: 0 !important; display: grid; place-items: center; border-radius: 50% !important; color: #c8e4e6 !important; font-size: 13px; line-height: 1; opacity: .62; backdrop-filter: blur(8px); }
+.showcase-pause-toggle:hover, .showcase-pause-toggle[aria-pressed='true'] { opacity: 1; }
+.showcase-paused *, .showcase-paused *::before, .showcase-paused *::after { animation-play-state: paused !important; }
 .showcase button:focus-visible, .showcase-switch:focus-visible { outline: 2px solid #59e1ec; outline-offset: 5px; }
 .showcase-map, .showcase-map-canvas { height: 100svh; min-height: 600px; }
 .showcase-map-caption { position: absolute; z-index: 2; left: 6vw; top: 19%; pointer-events: none; text-shadow: 0 2px 25px #000; }

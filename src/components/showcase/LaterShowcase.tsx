@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { LaterShowcaseMap, type LaterChoice, type LaterMapMoment } from './LaterShowcaseMap'
 import { showcaseTiming } from './timing'
+import { useShowcasePause } from './ShowcasePause'
 
 type Beat = 'cross-question' | 'cross-action' | 'cross-result' | 'rumor-question' | 'rumor-action' | 'rumor-result' | 'monitoring' | 'final'
 
 export function LaterShowcase({ onComplete, onClockChange }: { onComplete: () => void; onClockChange: (time: string) => void }) {
+  const { setPausableTimeout, clearPausableTimeout } = useShowcasePause()
   const [beat, setBeat] = useState<Beat>('cross-question')
   const [crossChoice, setCrossChoice] = useState<LaterChoice>(null)
   const [rumorChoice, setRumorChoice] = useState<LaterChoice>(null)
@@ -32,23 +34,23 @@ export function LaterShowcase({ onComplete, onClockChange }: { onComplete: () =>
       'rumor-action': 'rumor-result', 'rumor-result': 'monitoring', monitoring: 'final',
     }
     if (beat === 'final') {
-      const timer = window.setTimeout(onComplete, reduced ? 1_500 : showcaseTiming.laterFinalHold)
-      return () => window.clearTimeout(timer)
+      const timer = setPausableTimeout(onComplete, reduced ? 1_500 : showcaseTiming.laterFinalHold)
+      return () => clearPausableTimeout(timer)
     }
     if (!next[beat]) return
     const duration = reduced ? 1_200 : beat === 'cross-action' || beat === 'rumor-action' ? showcaseTiming.laterActionHold
       : beat === 'monitoring' ? showcaseTiming.laterMonitoringHold : showcaseTiming.laterResultHold
-    const timer = window.setTimeout(() => setBeat(next[beat]!), duration)
-    return () => window.clearTimeout(timer)
-  }, [beat, onComplete, reduced])
+    const timer = setPausableTimeout(() => setBeat(next[beat]!), duration)
+    return () => clearPausableTimeout(timer)
+  }, [beat, onComplete, reduced, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (beat !== 'monitoring') return
     setMonitoringStep(0)
-    const first = window.setTimeout(() => setMonitoringStep(1), reduced ? 400 : 500)
-    const second = window.setTimeout(() => setMonitoringStep(2), reduced ? 800 : 2_100)
-    return () => { window.clearTimeout(first); window.clearTimeout(second) }
-  }, [beat, reduced])
+    const first = setPausableTimeout(() => setMonitoringStep(1), reduced ? 400 : 500)
+    const second = setPausableTimeout(() => setMonitoringStep(2), reduced ? 800 : 2_100)
+    return () => { clearPausableTimeout(first); clearPausableTimeout(second) }
+  }, [beat, reduced, setPausableTimeout, clearPausableTimeout])
 
   return <div className="showcase-later-story">
     <LaterShowcaseMap moment={moment} choice={cross ? crossChoice : rumor ? rumorChoice : null} active={action} />

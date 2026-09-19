@@ -8,6 +8,7 @@ import type { CityLocationView } from '../../city/types'
 import { openingStops } from './sequence'
 import { scenarioLocations } from './responseGeography'
 import { showcaseTiming } from './timing'
+import { useShowcasePause } from './ShowcasePause'
 
 const locations: CityLocationView[] = openingStops.map((id) => ({
   ...cityLocationCatalog.find((location) => location.id === id)!,
@@ -19,10 +20,21 @@ const trajectory = buildRouteGeoJSON({ locations, signals: [], summary: '', rout
 })) }, true)
 
 export function ShowcaseMap({ onComplete }: { onComplete: () => void }) {
+  const { paused } = useShowcasePause()
   const container = useRef<HTMLDivElement>(null)
   const complete = useRef(onComplete)
   complete.current = onComplete
   const [step, setStep] = useState(-1)
+  const pausedAt = useRef<number | null>(paused ? performance.now() : null)
+  const pausedDuration = useRef(0)
+
+  useEffect(() => {
+    if (paused && pausedAt.current === null) pausedAt.current = performance.now()
+    if (!paused && pausedAt.current !== null) {
+      pausedDuration.current += performance.now() - pausedAt.current
+      pausedAt.current = null
+    }
+  }, [paused])
   const [error, setError] = useState(false)
 
   useEffect(() => {
@@ -52,7 +64,8 @@ export function ShowcaseMap({ onComplete }: { onComplete: () => void }) {
           const start = performance.now()
           const animate = (now: number) => {
             if (disposed) return
-            const elapsed = now - start
+            const activePause = pausedAt.current === null ? 0 : now - pausedAt.current
+            const elapsed = now - start - pausedDuration.current - activePause
             const progress = Math.max(0, Math.min(4, (elapsed - 1_200) / 900))
             const nextStep = elapsed < 600 ? -1 : Math.floor(progress)
             if (nextStep !== lastStep) {

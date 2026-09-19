@@ -3,12 +3,14 @@ import type { SimulationAction, SimulationState } from '../../simulation/types'
 import { MonitoringPointScene } from '../MonitoringPointScene'
 import { monitoringConsequenceTime } from './sequence'
 import { showcaseTiming } from './timing'
+import { useShowcasePause } from './ShowcasePause'
 
 export function MonitoringHeroScene({ state, dispatch, onComplete }: {
   state: SimulationState
   dispatch: Dispatch<SimulationAction>
   onComplete: () => void
 }) {
+  const { setPausableTimeout, clearPausableTimeout } = useShowcasePause()
   const delayed = state.module4.separationStatus === 'delayed'
   const immediate = state.module4.separationStatus === 'immediate'
   const completed = state.module4.transferStatus === 'completed'
@@ -18,30 +20,37 @@ export function MonitoringHeroScene({ state, dispatch, onComplete }: {
 
   useEffect(() => {
     if (state.phase !== 'deciding') return
-    const timer = window.setTimeout(() => setShowDecision(true), showcaseTiming.monitoringDecisionReveal)
-    return () => window.clearTimeout(timer)
-  }, [state.phase])
+    const timer = setPausableTimeout(() => setShowDecision(true), showcaseTiming.monitoringDecisionReveal)
+    return () => clearPausableTimeout(timer)
+  }, [state.phase, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (!delayed || completed) return
-    const interval = window.setInterval(() => setElapsedHours((hours) => Math.min(4, hours + 1)), showcaseTiming.monitoringHourTick)
-    return () => window.clearInterval(interval)
-  }, [delayed, completed])
+    let cancelled = false
+    let timer = 0
+    const tick = () => {
+      if (cancelled) return
+      setElapsedHours((hours) => Math.min(4, hours + 1))
+      timer = setPausableTimeout(tick, showcaseTiming.monitoringHourTick)
+    }
+    timer = setPausableTimeout(tick, showcaseTiming.monitoringHourTick)
+    return () => { cancelled = true; clearPausableTimeout(timer) }
+  }, [delayed, completed, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (!targetTime || completed) return
-    const timer = window.setTimeout(
+    const timer = setPausableTimeout(
       () => dispatch({ type: 'ADVANCE_TIME', simulationTime: targetTime }),
       delayed ? showcaseTiming.monitoringDelayedAction : showcaseTiming.monitoringImmediateAction,
     )
-    return () => window.clearTimeout(timer)
-  }, [targetTime, completed, delayed, dispatch])
+    return () => clearPausableTimeout(timer)
+  }, [targetTime, completed, delayed, dispatch, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (!completed) return
-    const timer = window.setTimeout(onComplete, showcaseTiming.monitoringConsequenceHold)
-    return () => window.clearTimeout(timer)
-  }, [completed, onComplete])
+    const timer = setPausableTimeout(onComplete, showcaseTiming.monitoringConsequenceHold)
+    return () => clearPausableTimeout(timer)
+  }, [completed, onComplete, setPausableTimeout, clearPausableTimeout])
 
   return <section className={`showcase-monitoring ${immediate ? 'choice-a' : ''} ${delayed ? 'choice-b' : ''}`} aria-label="沈洁健康监测报警">
     <div className="showcase-monitoring-heading">
@@ -68,11 +77,12 @@ export function MonitoringHeroScene({ state, dispatch, onComplete }: {
 }
 
 export function SecondaryCaseHero({ state }: { state: SimulationState }) {
+  const { setPausableTimeout, clearPausableTimeout } = useShowcasePause()
   const [showChain, setShowChain] = useState(false)
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowChain(true), showcaseTiming.transmissionReveal)
-    return () => window.clearTimeout(timer)
-  }, [])
+    const timer = setPausableTimeout(() => setShowChain(true), showcaseTiming.transmissionReveal)
+    return () => clearPausableTimeout(timer)
+  }, [setPausableTimeout, clearPausableTimeout])
 
   return <section className="showcase-secondary" aria-label="沈洁二次病例确诊">
     {state.module4.secondaryConfirmed && <div className="showcase-secondary-result" role="status">

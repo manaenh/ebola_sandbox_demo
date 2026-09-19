@@ -1,6 +1,7 @@
 import { useEffect, useState, type Dispatch } from 'react'
 import type { SimulationAction, SimulationState } from '../../simulation/types'
 import { showcaseTiming } from './timing'
+import { useShowcasePause } from './ShowcasePause'
 
 const seats = Array.from({ length: 42 }, (_, index) => index)
 const patientSeat = 20
@@ -17,6 +18,7 @@ const groups = [
 ] as const
 
 export function FlightReviewScene({ state, dispatch, onComplete }: { state: SimulationState; dispatch: Dispatch<SimulationAction>; onComplete?: () => void }) {
+  const { setPausableTimeout, clearPausableTimeout } = useShowcasePause()
   const selected = state.decisions['M3-2']
   const [reveal, setReveal] = useState(state.module3.flightReviewCompleted ? 9 : 0)
   const [choice, setChoice] = useState<'A' | 'B' | null>(
@@ -29,15 +31,15 @@ export function FlightReviewScene({ state, dispatch, onComplete }: { state: Simu
     const firstDelay = choice === 'B' && reveal === 0
       ? (reduced ? 0 : showcaseTiming.flightUniformHold)
       : (reduced ? 0 : showcaseTiming.flightRevealStep)
-    const timer = window.setTimeout(() => setReveal((current) => Math.min(9, current + 1)), firstDelay)
-    return () => window.clearTimeout(timer)
-  }, [choice, reveal])
+    const timer = setPausableTimeout(() => setReveal((current) => Math.min(9, current + 1)), firstDelay)
+    return () => clearPausableTimeout(timer)
+  }, [choice, reveal, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (reveal !== 9 || !onComplete) return
-    const timer = window.setTimeout(onComplete, showcaseTiming.flightResultHold)
-    return () => window.clearTimeout(timer)
-  }, [reveal, onComplete])
+    const timer = setPausableTimeout(onComplete, showcaseTiming.flightResultHold)
+    return () => clearPausableTimeout(timer)
+  }, [reveal, onComplete, setPausableTimeout, clearPausableTimeout])
 
   const choose = (next: 'A' | 'B') => {
     if (choice || state.currentEventId !== 'M3-2' || state.phase !== 'deciding') return

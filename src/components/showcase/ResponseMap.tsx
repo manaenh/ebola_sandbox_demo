@@ -4,8 +4,10 @@ import type { FeatureCollection, GeoJSON, LineString, Point } from 'geojson'
 import { createCommandStyle } from '../ShenzhenSituation'
 import type { ResponseStage } from './sequence'
 import { responseCamera, responsePulseLocation, responseRouteData, scenarioLocations, visibleNodes, type ShowcaseLocationId } from './responseGeography'
+import { useShowcasePause } from './ShowcasePause'
 
 export function ResponseMap({ stage, focusAirport = false, crossRegionBeat = false, focusMonitoring = false }: { stage: ResponseStage; focusAirport?: boolean; crossRegionBeat?: boolean; focusMonitoring?: boolean }) {
+  const { paused } = useShowcasePause()
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef(new Map<ShowcaseLocationId, Marker>())
@@ -13,6 +15,10 @@ export function ResponseMap({ stage, focusAirport = false, crossRegionBeat = fal
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
   const reducedMotion = useMemo(() => window.matchMedia('(prefers-reduced-motion: reduce)').matches, [])
+
+  useEffect(() => {
+    if (paused) mapRef.current?.stop()
+  }, [paused])
 
   useEffect(() => {
     let disposed = false

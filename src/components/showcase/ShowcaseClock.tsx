@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useShowcasePause } from './ShowcasePause'
 
 const chinaOffsetMs = 8 * 60 * 60 * 1000
 
@@ -9,11 +10,13 @@ export function formatShowcaseTime(timestamp: number) {
 }
 
 export function ShowcaseClock({ targetTime }: { targetTime: string }) {
+  const { paused } = useShowcasePause()
   const target = Date.parse(targetTime)
   const displayedTime = useRef(target)
   const [label, setLabel] = useState(() => formatShowcaseTime(target))
 
   useEffect(() => {
+    if (paused) return
     if (!Number.isFinite(target)) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const start = displayedTime.current
@@ -34,7 +37,7 @@ export function ShowcaseClock({ targetTime }: { targetTime: string }) {
     }
     frame = requestAnimationFrame(tick)
     return () => cancelAnimationFrame(frame)
-  }, [target])
+  }, [target, paused])
 
   return <div className="showcase-scenario-clock" aria-label={`推演时间 ${label}`}><span>推演时间</span><i /> <time>{label}</time></div>
 }

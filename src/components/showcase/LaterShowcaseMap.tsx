@@ -3,6 +3,7 @@ import { AttributionControl, Map as MapLibreMap, Marker, type GeoJSONSource } fr
 import type { FeatureCollection, GeoJSON, LineString } from 'geojson'
 import { createCommandStyle } from '../ShenzhenSituation'
 import { scenarioLocations } from './responseGeography'
+import { useShowcasePause } from './ShowcasePause'
 
 export type LaterMapMoment = 'coordination' | 'rumor' | 'monitoring' | 'final'
 export type LaterChoice = 'A' | 'B' | null
@@ -12,12 +13,20 @@ const regionalCenter: [number, number] = [114.4, 22.89]
 const cityCenter: [number, number] = [114.08, 22.59]
 
 export function LaterShowcaseMap({ moment, choice, active }: { moment: LaterMapMoment; choice: LaterChoice; active: boolean }) {
+  const { paused } = useShowcasePause()
   const container = useRef<HTMLDivElement>(null)
   const mapRef = useRef<MapLibreMap | null>(null)
   const markersRef = useRef<Marker[]>([])
   const routeFrame = useRef(0)
   const [ready, setReady] = useState(false)
   const [error, setError] = useState(false)
+
+  useEffect(() => {
+    if (paused) {
+      mapRef.current?.stop()
+      cancelAnimationFrame(routeFrame.current)
+    }
+  }, [paused])
   const [warningShown, setWarningShown] = useState(false)
 
   useEffect(() => {

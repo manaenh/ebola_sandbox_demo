@@ -13,6 +13,7 @@ import { LaterShowcase } from './LaterShowcase'
 import { ShowcaseClock } from './ShowcaseClock'
 import { crossRegionEntryActions, curatedActions, cutawayStageMs, flightEntryActions, openingConsequenceTime, responseSentences, responseStages, samplingCutawayAnimationMs, transferCutawayAnimationMs, type ResponseStage } from './sequence'
 import { showcaseTiming } from './timing'
+import { useShowcasePause } from './ShowcasePause'
 import './showcase.css'
 
 export function ShowcaseMode({ state, dispatch, onExit }: {
@@ -20,6 +21,7 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
   dispatch: Dispatch<SimulationAction>
   onExit: () => void
 }) {
+  const { paused, togglePaused, setPausableTimeout, clearPausableTimeout } = useShowcasePause()
   const [inHospital, setInHospital] = useState(state.phase !== 'deciding')
   const [showConsequence, setShowConsequence] = useState(false)
   const [previousSentence, setPreviousSentence] = useState<string | null>(null)
@@ -53,15 +55,15 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     if (!inHospital || !finished) return
     // Give the existing movement/exposure animation the stage before revealing copy.
     const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : showcaseTiming.consequenceReveal
-    const timer = window.setTimeout(() => setShowConsequence(true), delay)
-    return () => window.clearTimeout(timer)
-  }, [inHospital, finished])
+    const timer = setPausableTimeout(() => setShowConsequence(true), delay)
+    return () => clearPausableTimeout(timer)
+  }, [inHospital, finished, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (!showConsequence || responseStage || !isOpening) return
-    const timer = window.setTimeout(() => setResponseStage('incident'), showcaseTiming.consequenceHold)
-    return () => window.clearTimeout(timer)
-  }, [showConsequence, responseStage, isOpening])
+    const timer = setPausableTimeout(() => setResponseStage('incident'), showcaseTiming.consequenceHold)
+    return () => clearPausableTimeout(timer)
+  }, [showConsequence, responseStage, isOpening, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (!responseStage) return
@@ -79,24 +81,24 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     const duration = responseStage === 'confirmation' ? showcaseTiming.responseConfirmation
       : responseStage === 'transfer-scene' || responseStage === 'sampling-scene' ? cutawayStageMs
         : responseStage === 'incident' ? showcaseTiming.responseIncident : showcaseTiming.responseBeat
-    const timer = window.setTimeout(() => setResponseStage(responseStages[index + 1]), duration)
-    return () => window.clearTimeout(timer)
-  }, [responseStage, state.scene.kind])
+    const timer = setPausableTimeout(() => setResponseStage(responseStages[index + 1]), duration)
+    return () => clearPausableTimeout(timer)
+  }, [responseStage, state.scene.kind, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (responseStage !== 'escalation' || flightView !== 'none') return
-    const timer = window.setTimeout(() => {
+    const timer = setPausableTimeout(() => {
       flightEntryActions(state).forEach(dispatch)
       setFlightView('map')
     }, showcaseTiming.escalationHold)
-    return () => window.clearTimeout(timer)
-  }, [responseStage, flightView, state, dispatch])
+    return () => clearPausableTimeout(timer)
+  }, [responseStage, flightView, state, dispatch, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (flightView !== 'map') return
-    const timer = window.setTimeout(() => setFlightView('cabin'), showcaseTiming.airportMapHold)
-    return () => window.clearTimeout(timer)
-  }, [flightView])
+    const timer = setPausableTimeout(() => setFlightView('cabin'), showcaseTiming.airportMapHold)
+    return () => clearPausableTimeout(timer)
+  }, [flightView, setPausableTimeout, clearPausableTimeout])
 
   const handleFlightComplete = useCallback(() => {
     if (state.currentEventId !== 'M3-2' || state.phase !== 'resolved') return
@@ -106,18 +108,18 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
 
   useEffect(() => {
     if (flightView !== 'cross-region' || state.module !== 3 || state.phase !== 'module-complete') return
-    const timer = window.setTimeout(() => setFlightView('monitoring-map'), showcaseTiming.crossRegionHold)
-    return () => window.clearTimeout(timer)
-  }, [flightView, state.module, state.phase])
+    const timer = setPausableTimeout(() => setFlightView('monitoring-map'), showcaseTiming.crossRegionHold)
+    return () => clearPausableTimeout(timer)
+  }, [flightView, state.module, state.phase, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     if (flightView !== 'monitoring-map' || state.module !== 3 || state.phase !== 'module-complete') return
-    const timer = window.setTimeout(() => {
+    const timer = setPausableTimeout(() => {
       dispatch({ type: 'START_MODULE_4' })
       setFlightView('monitoring')
     }, showcaseTiming.monitoringMapHold)
-    return () => window.clearTimeout(timer)
-  }, [flightView, state.module, state.phase, dispatch])
+    return () => clearPausableTimeout(timer)
+  }, [flightView, state.module, state.phase, dispatch, setPausableTimeout, clearPausableTimeout])
 
   const handleMonitoringComplete = useCallback(() => {
     if (state.currentEventId !== 'M4-1' || state.module4.transferStatus !== 'completed') return
@@ -129,9 +131,9 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
 
   useEffect(() => {
     if (flightView !== 'case-confirmation' || !state.module4.secondaryConfirmed) return
-    const timer = window.setTimeout(() => setFlightView('later'), showcaseTiming.secondaryCaseHold)
-    return () => window.clearTimeout(timer)
-  }, [flightView, state.module4.secondaryConfirmed])
+    const timer = setPausableTimeout(() => setFlightView('later'), showcaseTiming.secondaryCaseHold)
+    return () => clearPausableTimeout(timer)
+  }, [flightView, state.module4.secondaryConfirmed, setPausableTimeout, clearPausableTimeout])
 
   useEffect(() => {
     const nextSentence = responseStage ? responseSentences[responseStage] ?? null : null
@@ -139,15 +141,16 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     activeSentence.current = nextSentence
     if (!oldSentence || oldSentence === nextSentence) return
     setPreviousSentence(oldSentence)
-    const timer = window.setTimeout(() => setPreviousSentence(null), 550)
-    return () => window.clearTimeout(timer)
-  }, [responseStage])
+    const timer = setPausableTimeout(() => setPreviousSentence(null), 550)
+    return () => clearPausableTimeout(timer)
+  }, [responseStage, setPausableTimeout, clearPausableTimeout])
 
-  return <main className="showcase">
+  return <main className={`showcase ${paused ? 'showcase-paused' : ''}`}>
     {flightView !== 'review' && <ShowcaseClock targetTime={flightView === 'later' && laterClockTime ? laterClockTime : state.simulationTime} />}
     <header className="showcase-header">
       <button className="showcase-switch" onClick={onExit}>返回工作台 ↗</button>
     </header>
+    <button className="showcase-pause-toggle" onClick={togglePaused} aria-pressed={paused} aria-label={paused ? '继续展示' : '暂停展示'}>{paused ? '▶' : 'Ⅱ'}</button>
     {flightView === 'review' ? <ShowcaseReview state={state} />
       : flightView === 'later' ? <LaterShowcase onClockChange={setLaterClockTime} onComplete={handleLaterComplete} />
       : flightView === 'case-confirmation' ? <SecondaryCaseHero state={state} />
