@@ -1,4 +1,5 @@
 import type { SimulationAction, SimulationState } from '../../simulation/types'
+import { showcaseTiming } from './timing'
 
 export const openingStops = ['airport', 'home', 'convenience-store', 'ride-hailing', 'central-hospital'] as const
 
@@ -10,8 +11,8 @@ export function openingConsequenceTime(state: SimulationState) {
 
 export const responseStages = ['incident', 'coordination', 'transfer-scene', 'transfer', 'sampling-scene', 'laboratory', 'confirmation', 'escalation'] as const
 export type ResponseStage = typeof responseStages[number]
-export const cutawayAnimationMs = 6400
-export const cutawayStageMs = cutawayAnimationMs + 200
+export const cutawayAnimationMs = showcaseTiming.cutawayAnimation
+export const cutawayStageMs = showcaseTiming.cutawayStage
 
 export const responseSentences: Partial<Record<ResponseStage, string>> = {
   incident: '11:20｜医院上报疑似病例，疾控介入响应',

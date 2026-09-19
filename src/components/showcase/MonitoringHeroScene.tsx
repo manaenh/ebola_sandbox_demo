@@ -2,6 +2,7 @@ import { useEffect, useState, type Dispatch } from 'react'
 import type { SimulationAction, SimulationState } from '../../simulation/types'
 import { MonitoringPointScene } from '../MonitoringPointScene'
 import { monitoringConsequenceTime } from './sequence'
+import { showcaseTiming } from './timing'
 
 export function MonitoringHeroScene({ state, dispatch, onComplete }: {
   state: SimulationState
@@ -17,25 +18,28 @@ export function MonitoringHeroScene({ state, dispatch, onComplete }: {
 
   useEffect(() => {
     if (state.phase !== 'deciding') return
-    const timer = window.setTimeout(() => setShowDecision(true), 1700)
+    const timer = window.setTimeout(() => setShowDecision(true), showcaseTiming.monitoringDecisionReveal)
     return () => window.clearTimeout(timer)
   }, [state.phase])
 
   useEffect(() => {
     if (!delayed || completed) return
-    const interval = window.setInterval(() => setElapsedHours((hours) => Math.min(4, hours + 1)), 700)
+    const interval = window.setInterval(() => setElapsedHours((hours) => Math.min(4, hours + 1)), showcaseTiming.monitoringHourTick)
     return () => window.clearInterval(interval)
   }, [delayed, completed])
 
   useEffect(() => {
     if (!targetTime || completed) return
-    const timer = window.setTimeout(() => dispatch({ type: 'ADVANCE_TIME', simulationTime: targetTime }), delayed ? 6000 : 2300)
+    const timer = window.setTimeout(
+      () => dispatch({ type: 'ADVANCE_TIME', simulationTime: targetTime }),
+      delayed ? showcaseTiming.monitoringDelayedAction : showcaseTiming.monitoringImmediateAction,
+    )
     return () => window.clearTimeout(timer)
   }, [targetTime, completed, delayed, dispatch])
 
   useEffect(() => {
     if (!completed) return
-    const timer = window.setTimeout(onComplete, 8000)
+    const timer = window.setTimeout(onComplete, showcaseTiming.monitoringConsequenceHold)
     return () => window.clearTimeout(timer)
   }, [completed, onComplete])
 
@@ -66,7 +70,7 @@ export function MonitoringHeroScene({ state, dispatch, onComplete }: {
 export function SecondaryCaseHero({ state }: { state: SimulationState }) {
   const [showChain, setShowChain] = useState(false)
   useEffect(() => {
-    const timer = window.setTimeout(() => setShowChain(true), 4000)
+    const timer = window.setTimeout(() => setShowChain(true), showcaseTiming.transmissionReveal)
     return () => window.clearTimeout(timer)
   }, [])
 

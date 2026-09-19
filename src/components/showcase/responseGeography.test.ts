@@ -61,7 +61,7 @@ describe('Showcase response geography', () => {
   })
 
   it('leaves the cutaway on screen after its entrance, hold, and exit animation', () => {
-    expect(cutawayAnimationMs).toBeGreaterThanOrEqual(6000)
+    expect(cutawayAnimationMs).toBeGreaterThanOrEqual(3500)
     expect(cutawayStageMs).toBeGreaterThan(cutawayAnimationMs)
   })
 })

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { LaterShowcaseMap, type LaterChoice, type LaterMapMoment } from './LaterShowcaseMap'
+import { showcaseTiming } from './timing'
 
 type Beat = 'cross-question' | 'cross-action' | 'cross-result' | 'rumor-question' | 'rumor-action' | 'rumor-result' | 'monitoring' | 'final'
 
@@ -31,12 +32,12 @@ export function LaterShowcase({ onComplete, onClockChange }: { onComplete: () =>
       'rumor-action': 'rumor-result', 'rumor-result': 'monitoring', monitoring: 'final',
     }
     if (beat === 'final') {
-      const timer = window.setTimeout(onComplete, reduced ? 2400 : 5600)
+      const timer = window.setTimeout(onComplete, reduced ? 1_500 : showcaseTiming.laterFinalHold)
       return () => window.clearTimeout(timer)
     }
     if (!next[beat]) return
-    const duration = reduced ? 1800 : beat === 'cross-action' || beat === 'rumor-action' ? 6300
-      : beat === 'monitoring' ? 9000 : 5500
+    const duration = reduced ? 1_200 : beat === 'cross-action' || beat === 'rumor-action' ? showcaseTiming.laterActionHold
+      : beat === 'monitoring' ? showcaseTiming.laterMonitoringHold : showcaseTiming.laterResultHold
     const timer = window.setTimeout(() => setBeat(next[beat]!), duration)
     return () => window.clearTimeout(timer)
   }, [beat, onComplete, reduced])
@@ -44,8 +45,8 @@ export function LaterShowcase({ onComplete, onClockChange }: { onComplete: () =>
   useEffect(() => {
     if (beat !== 'monitoring') return
     setMonitoringStep(0)
-    const first = window.setTimeout(() => setMonitoringStep(1), reduced ? 500 : 600)
-    const second = window.setTimeout(() => setMonitoringStep(2), reduced ? 1000 : 3600)
+    const first = window.setTimeout(() => setMonitoringStep(1), reduced ? 400 : 500)
+    const second = window.setTimeout(() => setMonitoringStep(2), reduced ? 800 : 2_100)
     return () => { window.clearTimeout(first); window.clearTimeout(second) }
   }, [beat, reduced])
 

@@ -12,6 +12,7 @@ import { ShowcaseReview } from './ShowcaseReview'
 import { LaterShowcase } from './LaterShowcase'
 import { ShowcaseClock } from './ShowcaseClock'
 import { crossRegionEntryActions, curatedActions, cutawayAnimationMs, cutawayStageMs, flightEntryActions, openingConsequenceTime, responseSentences, responseStages, type ResponseStage } from './sequence'
+import { showcaseTiming } from './timing'
 import './showcase.css'
 
 export function ShowcaseMode({ state, dispatch, onExit }: {
@@ -51,14 +52,14 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
   useEffect(() => {
     if (!inHospital || !finished) return
     // Give the existing movement/exposure animation the stage before revealing copy.
-    const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : 4000
+    const delay = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : showcaseTiming.consequenceReveal
     const timer = window.setTimeout(() => setShowConsequence(true), delay)
     return () => window.clearTimeout(timer)
   }, [inHospital, finished])
 
   useEffect(() => {
     if (!showConsequence || responseStage || !isOpening) return
-    const timer = window.setTimeout(() => setResponseStage('incident'), 7000)
+    const timer = window.setTimeout(() => setResponseStage('incident'), showcaseTiming.consequenceHold)
     return () => window.clearTimeout(timer)
   }, [showConsequence, responseStage, isOpening])
 
@@ -75,9 +76,9 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     if (responseStage === 'sampling-scene' && state.scene.kind !== 'sampling') return
     const index = responseStages.indexOf(responseStage)
     if (index === responseStages.length - 1) return
-    const duration = responseStage === 'confirmation' ? 3600
+    const duration = responseStage === 'confirmation' ? showcaseTiming.responseConfirmation
       : responseStage === 'transfer-scene' || responseStage === 'sampling-scene' ? cutawayStageMs
-        : responseStage === 'incident' ? 2800 : 3000
+        : responseStage === 'incident' ? showcaseTiming.responseIncident : showcaseTiming.responseBeat
     const timer = window.setTimeout(() => setResponseStage(responseStages[index + 1]), duration)
     return () => window.clearTimeout(timer)
   }, [responseStage, state.scene.kind])
@@ -87,13 +88,13 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     const timer = window.setTimeout(() => {
       flightEntryActions(state).forEach(dispatch)
       setFlightView('map')
-    }, 3800)
+    }, showcaseTiming.escalationHold)
     return () => window.clearTimeout(timer)
   }, [responseStage, flightView, state, dispatch])
 
   useEffect(() => {
     if (flightView !== 'map') return
-    const timer = window.setTimeout(() => setFlightView('cabin'), 5000)
+    const timer = window.setTimeout(() => setFlightView('cabin'), showcaseTiming.airportMapHold)
     return () => window.clearTimeout(timer)
   }, [flightView])
 
@@ -105,7 +106,7 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
 
   useEffect(() => {
     if (flightView !== 'cross-region' || state.module !== 3 || state.phase !== 'module-complete') return
-    const timer = window.setTimeout(() => setFlightView('monitoring-map'), 2700)
+    const timer = window.setTimeout(() => setFlightView('monitoring-map'), showcaseTiming.crossRegionHold)
     return () => window.clearTimeout(timer)
   }, [flightView, state.module, state.phase])
 
@@ -114,7 +115,7 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
     const timer = window.setTimeout(() => {
       dispatch({ type: 'START_MODULE_4' })
       setFlightView('monitoring')
-    }, 3300)
+    }, showcaseTiming.monitoringMapHold)
     return () => window.clearTimeout(timer)
   }, [flightView, state.module, state.phase, dispatch])
 
@@ -128,7 +129,7 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
 
   useEffect(() => {
     if (flightView !== 'case-confirmation' || !state.module4.secondaryConfirmed) return
-    const timer = window.setTimeout(() => setFlightView('later'), window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 8000 : 8000)
+    const timer = window.setTimeout(() => setFlightView('later'), showcaseTiming.secondaryCaseHold)
     return () => window.clearTimeout(timer)
   }, [flightView, state.module4.secondaryConfirmed])
 

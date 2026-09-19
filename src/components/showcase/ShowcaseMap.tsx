@@ -7,6 +7,7 @@ import { buildRouteGeoJSON, locationCamera, shenzhenCamera } from '../../city/ma
 import type { CityLocationView } from '../../city/types'
 import { openingStops } from './sequence'
 import { scenarioLocations } from './responseGeography'
+import { showcaseTiming } from './timing'
 
 const locations: CityLocationView[] = openingStops.map((id) => ({
   ...cityLocationCatalog.find((location) => location.id === id)!,
@@ -52,8 +53,8 @@ export function ShowcaseMap({ onComplete }: { onComplete: () => void }) {
           const animate = (now: number) => {
             if (disposed) return
             const elapsed = now - start
-            const progress = Math.max(0, Math.min(4, (elapsed - 2800) / 1500))
-            const nextStep = elapsed < 1000 ? -1 : Math.floor(progress)
+            const progress = Math.max(0, Math.min(4, (elapsed - 1_200) / 900))
+            const nextStep = elapsed < 600 ? -1 : Math.floor(progress)
             if (nextStep !== lastStep) {
               setStep(nextStep)
               for (let index = lastStep + 1; index <= nextStep; index++) {
@@ -85,13 +86,13 @@ export function ShowcaseMap({ onComplete }: { onComplete: () => void }) {
             })
             const routes: FeatureCollection<LineString> = { type: 'FeatureCollection', features }
             ;(activeMap.getSource('simulation-routes') as GeoJSONSource).setData(routes)
-            if (elapsed >= 9500 && !flying) {
+            if (elapsed >= showcaseTiming.openingRouteComplete - showcaseTiming.openingHospitalFlight && !flying) {
               flying = true
               const camera = locationCamera(locations[4])
               if (reduced) activeMap.jumpTo(camera)
-              else activeMap.flyTo({ ...camera, duration: 2400, curve: 1.15, essential: true })
+              else activeMap.flyTo({ ...camera, duration: showcaseTiming.openingHospitalFlight, curve: 1.15, essential: true })
             }
-            if (elapsed >= 12500) { complete.current(); return }
+            if (elapsed >= showcaseTiming.openingRouteComplete) { complete.current(); return }
             frame = requestAnimationFrame(animate)
           }
           frame = requestAnimationFrame(animate)

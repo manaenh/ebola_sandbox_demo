@@ -1,5 +1,6 @@
 import { useEffect, useState, type Dispatch } from 'react'
 import type { SimulationAction, SimulationState } from '../../simulation/types'
+import { showcaseTiming } from './timing'
 
 const seats = Array.from({ length: 42 }, (_, index) => index)
 const patientSeat = 20
@@ -25,14 +26,16 @@ export function FlightReviewScene({ state, dispatch, onComplete }: { state: Simu
   useEffect(() => {
     if (!choice || reveal === 9) return
     const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    const firstDelay = choice === 'B' && reveal === 0 ? (reduced ? 0 : 1500) : (reduced ? 0 : 2700)
+    const firstDelay = choice === 'B' && reveal === 0
+      ? (reduced ? 0 : showcaseTiming.flightUniformHold)
+      : (reduced ? 0 : showcaseTiming.flightRevealStep)
     const timer = window.setTimeout(() => setReveal((current) => Math.min(9, current + 1)), firstDelay)
     return () => window.clearTimeout(timer)
   }, [choice, reveal])
 
   useEffect(() => {
     if (reveal !== 9 || !onComplete) return
-    const timer = window.setTimeout(onComplete, 2600)
+    const timer = window.setTimeout(onComplete, showcaseTiming.flightResultHold)
     return () => window.clearTimeout(timer)
   }, [reveal, onComplete])
 
