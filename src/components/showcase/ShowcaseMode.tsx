@@ -11,7 +11,7 @@ import { MonitoringHeroScene, SecondaryCaseHero } from './MonitoringHeroScene'
 import { ShowcaseReview } from './ShowcaseReview'
 import { LaterShowcase } from './LaterShowcase'
 import { ShowcaseClock } from './ShowcaseClock'
-import { crossRegionEntryActions, curatedActions, cutawayAnimationMs, cutawayStageMs, flightEntryActions, openingConsequenceTime, responseSentences, responseStages, type ResponseStage } from './sequence'
+import { crossRegionEntryActions, curatedActions, cutawayStageMs, flightEntryActions, openingConsequenceTime, responseSentences, responseStages, samplingCutawayAnimationMs, transferCutawayAnimationMs, type ResponseStage } from './sequence'
 import { showcaseTiming } from './timing'
 import './showcase.css'
 
@@ -161,10 +161,10 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
         </div>
           : flightView === 'cabin' ? <FlightReviewScene state={state} dispatch={dispatch} onComplete={handleFlightComplete} /> : responseStage ? <div className="showcase-response-story">
       <ResponseMap stage={responseStage} focusAirport={flightView === 'map'} />
-      {responseStage === 'transfer-scene' && state.scene.kind === 'transport' && <div className="showcase-micro-scene" style={{ animationDuration: `${cutawayAnimationMs}ms` }} inert>
+      {responseStage === 'transfer-scene' && state.scene.kind === 'transport' && <div className="showcase-micro-scene" style={{ animationDuration: `${transferCutawayAnimationMs}ms` }} inert>
         <TransportScene scene={state.scene} module1={state.module1} module2={state.module2} activeHotspot={null} onHotspot={() => {}} onClearHotspot={() => {}} />
       </div>}
-      {responseStage === 'sampling-scene' && state.scene.kind === 'sampling' && <div className="showcase-micro-scene" style={{ animationDuration: `${cutawayAnimationMs}ms` }} inert>
+      {responseStage === 'sampling-scene' && state.scene.kind === 'sampling' && <div className="showcase-micro-scene" style={{ animationDuration: `${samplingCutawayAnimationMs}ms` }} inert>
         <SamplingScene scene={state.scene} module2={state.module2} activeHotspot={null} onHotspot={() => {}} onClearHotspot={() => {}} />
       </div>}
       {previousSentence && <div className="showcase-response-caption outgoing" aria-hidden="true">{previousSentence}</div>}

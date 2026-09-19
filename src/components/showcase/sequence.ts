@@ -11,7 +11,8 @@ export function openingConsequenceTime(state: SimulationState) {
 
 export const responseStages = ['incident', 'coordination', 'transfer-scene', 'transfer', 'sampling-scene', 'laboratory', 'confirmation', 'escalation'] as const
 export type ResponseStage = typeof responseStages[number]
-export const cutawayAnimationMs = showcaseTiming.cutawayAnimation
+export const transferCutawayAnimationMs = showcaseTiming.transferCutawayAnimation
+export const samplingCutawayAnimationMs = showcaseTiming.samplingCutawayAnimation
 export const cutawayStageMs = showcaseTiming.cutawayStage
 
 export const responseSentences: Partial<Record<ResponseStage, string>> = {

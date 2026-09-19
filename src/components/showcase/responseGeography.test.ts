@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs'
 import { describe, expect, it } from 'vitest'
-import { cutawayAnimationMs, cutawayStageMs, openingStops, responseStages } from './sequence'
+import { cutawayStageMs, openingStops, responseStages, samplingCutawayAnimationMs, transferCutawayAnimationMs } from './sequence'
 import { cityLocationCatalog } from '../../city/sourceData'
 import { responseCamera, responsePulseLocation, responseRouteData, responseRoutes, scenarioLocations, visibleNodes } from './responseGeography'
 
@@ -61,7 +61,8 @@ describe('Showcase response geography', () => {
   })
 
   it('leaves the cutaway on screen after its entrance, hold, and exit animation', () => {
-    expect(cutawayAnimationMs).toBeGreaterThanOrEqual(3500)
-    expect(cutawayStageMs).toBeGreaterThan(cutawayAnimationMs)
+    expect(transferCutawayAnimationMs).toBe(2500)
+    expect(samplingCutawayAnimationMs).toBe(2000)
+    expect(cutawayStageMs).toBe(2500)
   })
 })
