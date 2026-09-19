@@ -2,7 +2,7 @@
 .showcase-header { position: absolute; z-index: 5; inset: 0 0 auto; padding: 28px 4vw; display: flex; justify-content: flex-end; align-items: center; background: linear-gradient(#061119ee, transparent); }
 .showcase-switch, .showcase button { border: 1px solid #9ac3cc40; background: #0b2029cc; color: #deedf0; border-radius: 4px; padding: 12px 20px; cursor: pointer; }
 .showcase button:hover, .showcase-switch:hover { border-color: #59e1ec; background: #14333d; }
-.showcase-time-controls { position: fixed; z-index: 10; top: 29px; right: calc(4vw + 168px); display: flex; align-items: center; gap: 7px; }
+.showcase-time-controls { position: fixed; z-index: 10; top: 29px; left: 4vw; display: flex; align-items: center; gap: 7px; }
 .showcase-pause-toggle { width: 34px; height: 34px; padding: 0 !important; display: grid; place-items: center; border-radius: 50% !important; color: #c8e4e6 !important; font-size: 13px; line-height: 1; opacity: .62; backdrop-filter: blur(8px); }
 .showcase-pause-toggle:hover, .showcase-pause-toggle[aria-pressed='true'] { opacity: 1; }
 .showcase-paused *, .showcase-paused *::before, .showcase-paused *::after { animation-play-state: paused !important; }
@@ -374,5 +374,5 @@
 .showcase-later-final h1 { margin: 0 0 10px; color: #a6eee2; font-size: clamp(29px, 3.4vw, 52px); font-weight: 550; }
 .showcase-later-final p { margin: 0; color: #f2ffff; font-size: clamp(16px, 1.5vw, 23px); }
 @media (max-width: 640px) { .showcase-later-decision { left: 5vw; bottom: 8vh; padding: 18px; } .showcase-later-options { flex-direction: column; } .showcase-later-options button { text-align: left; font-size: 14px; } .showcase-later-map-key { right: 5vw; bottom: 2vh; } }
-@media (max-width: 640px) { .showcase-time-controls { top: 76px; right: 5vw; } .showcase-scenario-clock { padding: 7px 9px; font-size: 11px; } .showcase-pause-toggle { width: 30px; height: 30px; } }
+@media (max-width: 640px) { .showcase-time-controls { top: 20px; left: 5vw; } .showcase-scenario-clock { padding: 7px 9px; font-size: 11px; } .showcase-pause-toggle { width: 30px; height: 30px; } }
 @media (prefers-reduced-motion: reduce) { .showcase-info-wave::before, .showcase-info-wave::after, .showcase-later-node.synchronized i, .showcase-later-node.warning i { animation: none; } }
