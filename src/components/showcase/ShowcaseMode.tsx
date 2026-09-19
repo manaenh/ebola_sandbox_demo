@@ -146,11 +146,13 @@ export function ShowcaseMode({ state, dispatch, onExit }: {
   }, [responseStage, setPausableTimeout, clearPausableTimeout])
 
   return <main className={`showcase ${paused ? 'showcase-paused' : ''}`}>
-    {flightView !== 'review' && <ShowcaseClock targetTime={flightView === 'later' && laterClockTime ? laterClockTime : state.simulationTime} />}
+    {flightView !== 'review' && <div className="showcase-time-controls">
+      <ShowcaseClock targetTime={flightView === 'later' && laterClockTime ? laterClockTime : state.simulationTime} />
+      <button className="showcase-pause-toggle" onClick={togglePaused} aria-pressed={paused} aria-label={paused ? '继续展示' : '暂停展示'} title={paused ? '继续（空格）' : '暂停（空格）'}>{paused ? '▶' : 'Ⅱ'}</button>
+    </div>}
     <header className="showcase-header">
       <button className="showcase-switch" onClick={onExit}>返回工作台 ↗</button>
     </header>
-    <button className="showcase-pause-toggle" onClick={togglePaused} aria-pressed={paused} aria-label={paused ? '继续展示' : '暂停展示'}>{paused ? '▶' : 'Ⅱ'}</button>
     {flightView === 'review' ? <ShowcaseReview state={state} />
       : flightView === 'later' ? <LaterShowcase onClockChange={setLaterClockTime} onComplete={handleLaterComplete} />
       : flightView === 'case-confirmation' ? <SecondaryCaseHero state={state} />

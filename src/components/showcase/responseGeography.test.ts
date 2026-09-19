@@ -61,8 +61,8 @@ describe('Showcase response geography', () => {
   })
 
   it('leaves the cutaway on screen after its entrance, hold, and exit animation', () => {
-    expect(transferCutawayAnimationMs).toBe(2500)
-    expect(samplingCutawayAnimationMs).toBe(2000)
-    expect(cutawayStageMs).toBe(2500)
+    expect(transferCutawayAnimationMs).toBe(3000)
+    expect(samplingCutawayAnimationMs).toBe(2500)
+    expect(cutawayStageMs).toBe(3000)
   })
 })
